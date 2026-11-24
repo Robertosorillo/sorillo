@@ -315,8 +315,8 @@ window.SORILLO_FB = {
   messagingSenderId: "538474976428",
   appId: "1:538474976428:web:2b608525db76acd7e5bb09"
 };
-/* Clave pública de reCAPTCHA v3 (App Check). Vacía = asistente IA desactivado. */
-window.SORILLO_RECAPTCHA = '';
+/* Clave de reCAPTCHA (App Check con Fraud Defense / reCAPTCHA Enterprise). Vacía = asistente IA desactivado. */
+window.SORILLO_RECAPTCHA = '6Lf8yjAuAAAAABS1q9I304_nBqLqQ1-SZeZt8R0G';
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 </script>
 <script>
@@ -3295,7 +3295,7 @@ let listo = null;
 async function arrancar() {
   const [a, c, ia] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-app-check.js'), import(B + 'firebase-ai.js')]);
   const app = a.initializeApp(window.SORILLO_FB, 'ia');
-  c.initializeAppCheck(app, { provider: new c.ReCaptchaV3Provider(KEY), isTokenAutoRefreshEnabled: true });
+  c.initializeAppCheck(app, { provider: new c.ReCaptchaEnterpriseProvider(KEY), isTokenAutoRefreshEnabled: true });
   return { ai: ia.getAI(app, { backend: new ia.GoogleAIBackend() }), getGenerativeModel: ia.getGenerativeModel };
 }
 window.SORILLO_IA = {
