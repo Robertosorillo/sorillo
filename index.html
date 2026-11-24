@@ -336,15 +336,19 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const CAT_ENV = [['tarros', 'Tarros y botes', 'ud'], ['tapas', 'Tapas', 'ud'], ['precintos', 'Precintos', 'ud'], ['embalaje', 'Cajas y embalaje', 'ud'], ['etiquetas', 'Etiquetas', 'ud'], ['eotro', 'Otro material de envasado', 'ud']];
   /* Tamaños de tarro por defecto. El precinto de 1, 2 y 5 kg es el mismo; las etiquetas son distintas para cada tamaño. */
   const TAM_MIEL = [['5 kg', 5000], ['2 kg', 2000], ['1 kg', 1000], ['500 g', 500], ['250 g', 250], ['45 g', 45]];
-  const PREC_GR = 'Precinto 1 kg · 2 kg · 5 kg';
-  const precDe = (t) => /^[125] kg$/.test(t) ? PREC_GR : 'Precinto ' + t;
+  const TAM_POLEN = [['220 g', 220], ['125 g', 125], ['20 g', 20]];
+  /* Cada tarro gasta 1 tarro, 1 tapa, 1 precinto y 1 etiqueta.
+     Etiquetas: genéricas por tamaño (45 g a 2 kg). Precintos: según la miel y el tamaño (el de 1 kg vale también para 2 kg). */
+  const ETQ_TAM = ['2 kg', '1 kg', '500 g', '250 g', '45 g'];
+  const PREC_MIEL = [['Encina', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Flores', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Bosque', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Retama', ['1 kg · 2 kg', '500 g', '250 g', '45 g']],
+    ['Nueces', ['500 g', '250 g', '45 g']], ['Pistachos', ['250 g', '45 g']], ['Trufa', ['250 g', '45 g']], ['Polen', ['220 g', '125 g', '20 g']]];
   const BASE_ENV = [].concat(
-    TAM_MIEL.map((t) => ['Tarro ' + t[0], 'tarros', 'ud']), [['Bote polen 250 g', 'tarros', 'ud'], ['Bote polen 125 g', 'tarros', 'ud'], ['Bote polen 20 g', 'tarros', 'ud']],
-    TAM_MIEL.map((t) => ['Tapa ' + t[0], 'tapas', 'ud']),
-    [[PREC_GR, 'precintos', 'ud'], ['Precinto 500 g', 'precintos', 'ud'], ['Precinto 250 g', 'precintos', 'ud'], ['Precinto 45 g', 'precintos', 'ud']],
-    TAM_MIEL.map((t) => ['Etiqueta ' + t[0], 'etiquetas', 'ud']),
+    TAM_MIEL.map((t) => ['Tarro ' + t[0], 'tarros', 'ud']), TAM_POLEN.map((t) => ['Bote polen ' + t[0], 'tarros', 'ud']),
+    TAM_MIEL.map((t) => ['Tapa ' + t[0], 'tapas', 'ud']), TAM_POLEN.map((t) => ['Tapa bote polen ' + t[0], 'tapas', 'ud']),
+    [].concat.apply([], PREC_MIEL.map((p) => p[1].map((t) => ['Precinto ' + p[0] + ' ' + t, 'precintos', 'ud']))),
+    ETQ_TAM.map((t) => ['Etiqueta ' + t, 'etiquetas', 'ud']), TAM_POLEN.map((t) => ['Etiqueta polen ' + t[0], 'etiquetas', 'ud']),
     [['Cajas de cartón', 'embalaje', 'ud']]);
-  const VIEJOS_ENV = ['Tapas', 'Etiquetas frontales', 'Contraetiquetas', 'Precintos', 'Cubo 5 kg'];
+  const VIEJOS_ENV = ['Tapas', 'Etiquetas frontales', 'Contraetiquetas', 'Precintos', 'Cubo 5 kg', 'Precinto 1 kg · 2 kg · 5 kg', 'Precinto 500 g', 'Precinto 250 g', 'Precinto 45 g', 'Etiqueta 5 kg', 'Bote polen 250 g'];
   const BASE_ALM = [['Jarabe', 'alimento', 'kg'], ['Apipasta', 'alimento', 'kg'], ['Azúcar', 'alimento', 'sacos', 'saco 20 kg'], ['Colmenas vacías', 'colmenas', 'ud'], ['Núcleos', 'cajas', 'ud'], ['Láminas', 'laminas', 'cajas', 'cajas'], ['Cazapolen', 'cazapolen', 'ud'], ['Alimentadores', 'alimentadores', 'ud'], ['Aislantes', 'aislantes', 'ud']];
   const UNIDADES = [['kg', 'kilos (kg)'], ['ud', 'unidades'], ['l', 'litros'], ['sacos', 'sacos'], ['cajas', 'cajas']];
   const CAT_GAS = ['Combustible y desplazamientos', 'Mano de obra', 'Alimentación de las abejas', 'Tratamientos y sanidad', 'Material apícola', 'Envases y etiquetas', 'Vehículos', 'Seguros', 'Seguridad Social y cuotas', 'Alquileres y terrenos', 'Obrador y análisis', 'Gestoría y tasas', 'Otros'];
@@ -1433,7 +1437,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   /* ---------- Almacén: productos (bidones de miel numerados) ---------- */
   const EST_PRD = { almacen: ['En almacén', 'ok'], enuso: ['En uso', 'warn'], envasado: ['Envasado', 'none'], vendido: ['Vendido', 'none'] };
   /* Lote del bidón: el que se le haya puesto o, si no, uno automático: M (miel) / P (polen) + año + nº de bidón. */
-  const loteAuto = (x) => (x.prod === 'polen' ? 'P' : 'M') + String(x.fecha || anioAct()).slice(2, 4) + '-' + String(x.num == null ? '' : x.num).padStart(3, '0');
+  /* Lote = nº del bidón con 4 cifras (bidón 1 → 0001). El polen lleva P delante para no confundirse con la miel. */
+  const loteAuto = (x) => (x.prod === 'polen' ? 'P' : '') + String(x.num == null ? '' : x.num).trim().padStart(4, '0');
   const loteDe = (x) => String(x.lote || '').trim() || loteAuto(x);
   const MIELES_DEF = ['Encina', 'Mil flores', 'Retama', 'Bosque', 'Cañaveral', 'Tierra Vieja', 'Zamarril'];
   const prodPrd = (x) => x.prod === 'polen' ? 'polen' : 'miel';
@@ -1483,7 +1488,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       '<div class="grid2">' + fld('b-num', x ? 'Número de ' + L.u : 'Del nº', inp('b-num', 'text', v.num, 'inputmode="numeric" autocomplete="off"')) + (x ? fld('b-kg', 'Kilos', inp('b-kg', 'number', v.kg, 'min="0" step="any" inputmode="decimal"'), 'Opcional') : fld('b-hasta', 'Hasta el nº', inp('b-hasta', 'text', '', 'inputmode="numeric" autocomplete="off"'), 'Opcional: crea varios seguidos')) + '</div>' +
       fld('b-var', L.tipo, inp('b-var', 'text', v.variedad, 'list="dl-bvar" autocomplete="off" placeholder="' + L.ph + '"')) +
       '<datalist id="dl-bvar">' + vs.map((o) => '<option value="' + esc(o) + '">').join('') + '</datalist>' +
-      fld('b-lote', 'Nº de lote', inp('b-lote', 'text', x ? x.lote : '', 'autocomplete="off" placeholder="' + esc(x ? loteAuto(x) : (pr === 'polen' ? 'P' : 'M') + anioAct().slice(2) + '-001') + '"'), x ? 'Si lo dejas vacío: ' + loteAuto(x) : 'Si lo dejas vacío se pone solo: ' + (pr === 'polen' ? 'P' : 'M') + ' + año + nº de bidón') +
+      fld('b-lote', 'Nº de lote', inp('b-lote', 'text', x ? x.lote : '', 'autocomplete="off" placeholder="' + esc(x ? loteAuto(x) : (pr === 'polen' ? 'P' : '') + '0001') + '"'), x ? 'Si lo dejas vacío: ' + loteAuto(x) : 'Si lo dejas vacío se pone solo con el nº del bidón: 0001, 0002…' + (pr === 'polen' ? ' (con P delante)' : '')) +
       fld('b-ori', 'Procedencia (asentamiento)', inp('b-ori', 'text', v.origen, 'list="dl-bori" autocomplete="off" placeholder="Cañaveral, Tierra Vieja, Zamarril…"'), 'Opcional') +
       '<datalist id="dl-bori">' + os.map((o) => '<option value="' + esc(o) + '">').join('') + '</datalist>' +
       (x ? '' : fld('b-kg', 'Kilos de cada ' + L.u, inp('b-kg', 'number', v.kg, 'min="0" step="any" inputmode="decimal"'), 'Opcional')) +
@@ -2163,17 +2168,18 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return pr ? S.prd.filter((x) => prodPrd(x) === pr && (estPrd(x) === 'almacen' || estPrd(x) === 'enuso')).sort((a, b) => (estPrd(a) === 'enuso' ? 0 : 1) - (estPrd(b) === 'enuso' ? 0 : 1) || numCmp(a, b)) : [];
   }
   const opcBid = (f) => '<option value="">Ninguno / no restar kilos</option>' + bidonesPara(f).map((b) => '<option value="' + esc(b.id) + '">' + (estPrd(b) === 'enuso' ? '▶ En uso · ' : '') + 'Lote ' + esc(loteDe(b)) + ' · nº ' + esc(b.num) + ' · ' + esc(varPrd(b)) + ' · ' + fmtN(b.kg || 0) + ' kg</option>').join('');
-  function recetaTxt(f, n) {
-    const r = (f && f.receta || []).map((m) => ({ m, x: S.alm.find((y) => y.id === m.id) })).filter((o) => o.x);
+  function recetaTxt(f, n, v) {
+    const r = matLote(f, v).map((m) => ({ m, x: S.alm.find((y) => y.id === m.id) })).filter((o) => o.x);
     if (!r.length) return '<p class="hint">Este formato no tiene material asignado. Puedes asignarlo en la pestaña Formatos.</p>';
+    const sinPrec = f && Number(f.gramos) > 0 && Number(f.gramos) < 5000 && !r.some((o) => catK(o.x) === 'precintos') ? '<p class="hint">' + (v ? 'No hay precinto de «' + esc(v) + '» para este tamaño en el material.' : 'Escribe la variedad para saber qué precinto se gasta.') + '</p>' : '';
     return '<ul class="hint" style="margin:0;padding-left:18px">' + r.map((o) => { const need = o.m.q * (n || 0), have = sinContar(o.x) ? null : Number(o.x.cantidad) || 0;
-      return '<li>' + esc(o.x.nombre) + ': ' + fmtN(need) + ' ' + esc(o.x.unidad || 'ud') + (have == null ? ' (sin contar en el almacén)' : have < need ? ' — <b>solo hay ' + fmtN(have) + '</b>' : ' (hay ' + fmtN(have) + ')') + '</li>'; }).join('') + '</ul>';
+      return '<li>' + esc(o.x.nombre) + ': ' + fmtN(need) + ' ' + esc(o.x.unidad || 'ud') + (have == null ? ' (sin contar en el almacén)' : have < need ? ' — <b>solo hay ' + fmtN(have) + '</b>' : ' (hay ' + fmtN(have) + ')') + '</li>'; }).join('') + '</ul>' + sinPrec;
   }
   function loteResumen() {
     const f = findFmt(val('l-fmt')), n = num('l-n') || 0, z = document.getElementById('l-res'); if (!z) return;
     const kg = kgDeTarros(f, n), b = S.prd.find((y) => y.id === val('l-bid'));
     z.innerHTML = (f && f.gramos ? '<p class="hint">Se usan <b>' + fmtN(Math.round(kg * 100) / 100) + ' kg</b> de ' + esc(prodEnv(f.prod)[1].toLowerCase()) + (b ? ' del bidón nº ' + esc(b.num) + ' (tiene ' + fmtN(b.kg || 0) + ' kg' + (Number(b.kg) < kg ? ', <b>no llega</b>' : '') + ') · lote ' + esc(loteDe(b)) : '') + '.</p>' : '') +
-      '<p class="hint" style="margin-top:6px"><b>Material que se descuenta del almacén:</b></p>' + recetaTxt(f, n);
+      '<p class="hint" style="margin-top:6px"><b>Material que se descuenta del almacén:</b></p>' + recetaTxt(f, n, val('l-var') || (b ? varPrd(b) : ''));
   }
   function sheetLote(s) {
     if (s.id) { const e = S.env.find((y) => y.id === s.id); if (!e) return ''; const f = findFmt(e.formatoId);
@@ -2201,7 +2207,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (n == null || n < 1 || Math.floor(n) !== n) return showErr('l-err', 'Indica cuántos tarros has llenado, con un número entero.');
     if (!fecha) return showErr('l-err', 'Indica la fecha.');
     const v = val('l-var') || (b ? varPrd(b) : ''), kg = Math.round(kgDeTarros(f, n) * 100) / 100;
-    const mat = (document.getElementById('l-mat') || {}).checked ? (f.receta || []).filter((m) => S.alm.some((y) => y.id === m.id && !sinContar(y))).map((m) => ({ id: m.id, q: m.q * n })) : [];
+    const mat = (document.getElementById('l-mat') || {}).checked ? matLote(f, v).filter((m) => S.alm.some((y) => y.id === m.id && !sinContar(y))).map((m) => ({ id: m.id, q: m.q * n })) : [];
     const restaKg = b && (document.getElementById('l-kg') || {}).checked ? Math.min(kg, Number(b.kg) || 0) : 0;
     S.ultFmt = f.id;
     const ok = await run(async () => {
@@ -2337,8 +2343,22 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const ok = await run(() => S.store.set(FMT, id || S.store.newId(), doc), id ? 'Formato guardado' : 'Formato creado');
     if (ok) closeSheet();
   }
-  const FMT_BASE = TAM_MIEL.slice().reverse().map((t) => ['Miel ' + t[0], 'miel', t[1], ['Tarro ' + t[0], 'Tapa ' + t[0], precDe(t[0]), 'Etiqueta ' + t[0]]])
-    .concat([['Polen seco 20 g', 'polen', 20, ['Bote polen 20 g']], ['Polen seco 125 g', 'polen', 125, ['Bote polen 125 g']], ['Polen seco 250 g', 'polen', 250, ['Bote polen 250 g']]]);
+  /* El precinto no va en la receta: se elige al envasar según la miel (ver precintoPara). */
+  const FMT_BASE = TAM_MIEL.slice().reverse().map((t) => ['Miel ' + t[0], 'miel', t[1], ['Tarro ' + t[0], 'Tapa ' + t[0], 'Etiqueta ' + t[0]]])
+    .concat(TAM_POLEN.slice().reverse().map((t) => ['Polen seco ' + t[0], 'polen', t[1], ['Bote polen ' + t[0], 'Tapa bote polen ' + t[0], 'Etiqueta polen ' + t[0]]]));
+  const tamTxt = (g) => (g = Number(g) || 0) >= 1000 ? fmtN(g / 1000) + ' kg' : g + ' g';
+  /* Precinto que toca según formato y miel: «Precinto Encina 500 g», «Precinto Trufa 45 g», «Precinto Polen 125 g»… */
+  function precintoPara(f, v) {
+    if (!f || !(Number(f.gramos) > 0)) return null;
+    if ((f.receta || []).some((m) => { const x = S.alm.find((y) => y.id === m.id); return x && catK(x) === 'precintos'; })) return null;
+    let nom;
+    if (f.prod === 'polen' || f.prod === 'polenfresco') nom = 'Polen';
+    else { const c = catDe(v); if (!c) return null; nom = { 'Con pistachos': 'Pistachos', 'Con nueces': 'Nueces', 'Con trufa': 'Trufa' }[c[0]] || c[0]; }
+    const g = Number(f.gramos), t = (g === 1000 || g === 2000) && ['Encina', 'Flores', 'Bosque', 'Retama'].indexOf(nom) >= 0 ? '1 kg · 2 kg' : tamTxt(g);
+    return almEnv('Precinto ' + nom + ' ' + t) || null;
+  }
+  /* Material que gasta un envasado: la receta del formato más el precinto de esa miel. */
+  const matLote = (f, v) => (f && f.receta || []).concat((() => { const p = precintoPara(f, v); return p ? [{ id: p.id, q: 1 }] : []; })());
   const slugB = (t) => keyN(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const almEnv = (nom) => S.alm.find((y) => secAlm(y) === 'envasadora' && keyN(y.nombre) === keyN(nom));
   const recetaBase = (b) => b[3].map((n) => almEnv(n)).filter(Boolean).map((x) => ({ id: x.id, q: 1 }));
@@ -2355,7 +2375,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
      quita los artículos genéricos antiguos que estén sin cantidad y rehace las recetas de los formatos base. */
   let ordenHecho = false;
   async function ordenarEnvasado() {
-    if (ordenHecho || (S.cfg && S.cfg.envOrden2) || !S.loaded.alm || !S.loaded.fmt || !S.store.attached()) return;
+    if (ordenHecho || (S.cfg && S.cfg.envOrden4) || !S.loaded.alm || !S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped || !S.store.attached()) return;
     const empezado = S.fmt.length || S.alm.some((y) => secAlm(y) === 'envasadora');
     if (!empezado) return;
     ordenHecho = true;
@@ -2370,7 +2390,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
         await S.store.del(ALM, x.id); S.alm = S.alm.filter((y) => y.id !== x.id);
       }
       await ponerFormatosBase(FMT_BASE, true);
-      await S.store.set(CFG, 'main', cfgDoc({ envOrden2: true }));
+      /* el bote de polen es de 220 g: quita el formato de 250 g si no se ha usado */
+      const f250 = S.fmt.find((f) => keyN(f.nombre) === 'polen seco 250 g');
+      if (f250 && !S.tar.some((t) => t.formatoId === f250.id && Number(t.cantidad) > 0) && !S.env.some((e) => e.formatoId === f250.id) && !S.ped.some((p) => (p.lineas || []).some((l) => l.fid === f250.id))) { await S.store.del(FMT, f250.id); S.fmt = S.fmt.filter((f) => f.id !== f250.id); }
+      await S.store.set(CFG, 'main', cfgDoc({ envOrden4: true }));
     } catch (e) { ordenHecho = false; }
   }
   /* --- pedidos --- */
