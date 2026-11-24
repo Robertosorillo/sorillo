@@ -291,6 +291,15 @@ textarea { min-height: 84px; resize: vertical; }
 .meter.acc i { background: var(--accent); }
 .money { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row-main .money-sub { font-size: .8rem; color: var(--ink-2); }
+.est { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+.est-f { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: baseline; }
+.est-f b { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.est-f > span { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; white-space: nowrap; }
+.est-f small { grid-column: 1 / -1; color: var(--ink-2); font-size: .78rem; }
+.est-f .meter { grid-column: 1 / -1; margin-top: 0; }
+.est-f .meter i { background: var(--accent); }
+details.est > summary { cursor: pointer; font-variant-numeric: tabular-nums; }
+details.est + details.est { margin-top: 8px; }
 </style>
 
 <div id="login" class="login" hidden></div>
@@ -324,8 +333,18 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   'use strict';
   const COL = 'asentamientos', REG = 'registros', CFG = 'config', ALM = 'almacen', GAS = 'gastos', ING = 'ingresos', SUB = 'subvenciones', TMP = 'tiempo', PRD = 'productos', PAT = 'patrimonio', FMT = 'formatos', TAR = 'tarros', ENV = 'envasados', PED = 'pedidos', SEN = 'sensores', LEC = 'lecturas';
   const CAT_ALM = [['alimento', 'Alimento', 'kg'], ['colmenas', 'Colmenas vacías', 'ud'], ['cajas', 'Núcleos', 'ud'], ['laminas', 'Láminas', 'cajas'], ['cazapolen', 'Cazapolen', 'ud'], ['alimentadores', 'Alimentadores', 'ud'], ['tratamientos', 'Tratamientos', 'ud'], ['envases', 'Envases y etiquetas', 'ud'], ['otro', 'Otro material', 'ud'], ['aislantes', 'Aislantes', 'ud']];
-  const CAT_ENV = [['tarros', 'Tarros y botes', 'ud'], ['tapas', 'Tapas', 'ud'], ['etiquetas', 'Etiquetas', 'ud'], ['embalaje', 'Cajas y embalaje', 'ud'], ['precintos', 'Precintos y sellos', 'ud'], ['eotro', 'Otro material de envasado', 'ud']];
-  const BASE_ENV = [['Tarro 250 g', 'tarros', 'ud'], ['Tarro 500 g', 'tarros', 'ud'], ['Tarro 1 kg', 'tarros', 'ud'], ['Bote polen 250 g', 'tarros', 'ud'], ['Tapas', 'tapas', 'ud'], ['Etiquetas frontales', 'etiquetas', 'ud'], ['Contraetiquetas', 'etiquetas', 'ud'], ['Precintos', 'precintos', 'ud'], ['Cajas de cartón', 'embalaje', 'ud']];
+  const CAT_ENV = [['tarros', 'Tarros y botes', 'ud'], ['tapas', 'Tapas', 'ud'], ['precintos', 'Precintos', 'ud'], ['embalaje', 'Cajas y embalaje', 'ud'], ['etiquetas', 'Etiquetas', 'ud'], ['eotro', 'Otro material de envasado', 'ud']];
+  /* Tamaños de tarro por defecto. El precinto de 1, 2 y 5 kg es el mismo; las etiquetas son distintas para cada tamaño. */
+  const TAM_MIEL = [['5 kg', 5000], ['2 kg', 2000], ['1 kg', 1000], ['500 g', 500], ['250 g', 250], ['45 g', 45]];
+  const PREC_GR = 'Precinto 1 kg · 2 kg · 5 kg';
+  const precDe = (t) => /^[125] kg$/.test(t) ? PREC_GR : 'Precinto ' + t;
+  const BASE_ENV = [].concat(
+    TAM_MIEL.map((t) => ['Tarro ' + t[0], 'tarros', 'ud']), [['Bote polen 250 g', 'tarros', 'ud'], ['Bote polen 125 g', 'tarros', 'ud'], ['Bote polen 20 g', 'tarros', 'ud']],
+    TAM_MIEL.map((t) => ['Tapa ' + t[0], 'tapas', 'ud']),
+    [[PREC_GR, 'precintos', 'ud'], ['Precinto 500 g', 'precintos', 'ud'], ['Precinto 250 g', 'precintos', 'ud'], ['Precinto 45 g', 'precintos', 'ud']],
+    TAM_MIEL.map((t) => ['Etiqueta ' + t[0], 'etiquetas', 'ud']),
+    [['Cajas de cartón', 'embalaje', 'ud']]);
+  const VIEJOS_ENV = ['Tapas', 'Etiquetas frontales', 'Contraetiquetas', 'Precintos', 'Cubo 5 kg'];
   const BASE_ALM = [['Jarabe', 'alimento', 'kg'], ['Apipasta', 'alimento', 'kg'], ['Azúcar', 'alimento', 'sacos', 'saco 20 kg'], ['Colmenas vacías', 'colmenas', 'ud'], ['Núcleos', 'cajas', 'ud'], ['Láminas', 'laminas', 'cajas', 'cajas'], ['Cazapolen', 'cazapolen', 'ud'], ['Alimentadores', 'alimentadores', 'ud'], ['Aislantes', 'aislantes', 'ud']];
   const UNIDADES = [['kg', 'kilos (kg)'], ['ud', 'unidades'], ['l', 'litros'], ['sacos', 'sacos'], ['cajas', 'cajas']];
   const CAT_GAS = ['Combustible y desplazamientos', 'Mano de obra', 'Alimentación de las abejas', 'Tratamientos y sanidad', 'Material apícola', 'Envases y etiquetas', 'Vehículos', 'Seguros', 'Seguridad Social y cuotas', 'Alquileres y terrenos', 'Obrador y análisis', 'Gestoría y tasas', 'Otros'];
@@ -1152,10 +1171,14 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       S.alm.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')).map((x) => [x.nombre, (CAT_ALM.find((c) => c[0] === catK(x)) || [0, ''])[1], nz(x.cantidad), nz(x.unidad), nz(x.minimo), nz(x.ubicacion), nz(x.detalle)]))]);
     const gastos = S.gas.map((x) => [x.tipo === 'fijo' ? 'Fijo' : 'Variable', x.concepto, x.categoria, x.importe, x.tipo === 'fijo' ? FR(x.frecuencia) : '', x.tipo === 'fijo' ? anualDe(x) : x.importe, nz(x.fecha), nz(x.notas)])
       .concat(S.col.map((c) => ({ c, i: rentaInfo(c) })).filter((o) => o.i).map((o) => ['Fijo', 'Renta · ' + nombreNum(o.c), 'Alquileres y terrenos', o.i.miel ? o.i.r + ' kg de miel' : o.i.r, FR(o.i.f), o.i.miel ? o.i.anual + ' kg de miel' : o.i.anual, '', '']));
-    hojas.push(['Productos almacén', [['Producto', 'Nº', 'Tipo', 'Procedencia', 'Kg', 'Fecha de extracción', 'Estado', 'Dónde está', 'Notas']].concat(
-      S.prd.slice().sort(numCmp).map((x) => [prodPrd(x) === 'polen' ? 'Polen' : 'Miel', nz(x.num), nz(x.variedad), nz(x.origen), nz(x.kg), nz(x.fecha), EST_PRD[estPrd(x)][0], nz(x.ubicacion), nz(x.notas)]))]);
+    { const fil = []; S.ped.filter((p) => p.estado === 'enviado' || p.estado === 'entregado').forEach((p) => (p.lineas || []).forEach((x) => { const f = findFmt(x.fid), n = Number(x.n) || 0; if (!n) return;
+        fil.push([String(p.fecha || '').slice(0, 7), f ? prodEnv(f.prod)[1] : '', canonVar(x.v), nz((catDe(x.v) || [])[1]), f ? f.nombre : 'Formato borrado', n, kgDeTarros(f, n), x.precio != null ? Math.round(n * Number(x.precio) * 100) / 100 : '', p.canal || '', p.cliente || '']); }));
+      fil.sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[2]).localeCompare(String(b[2]), 'es'));
+      hojas.push(['Ventas por mes y tipo', [['Mes', 'Producto', 'Tipo', 'Miel base', 'Formato', 'Tarros', 'Kg', 'Importe €', 'Canal', 'Cliente']].concat(fil)]); }
+    hojas.push(['Productos almacén', [['Producto', 'Nº', 'Lote', 'Tipo', 'Procedencia', 'Kg', 'Fecha de extracción', 'Estado', 'Dónde está', 'Notas']].concat(
+      S.prd.slice().sort(numCmp).map((x) => [prodPrd(x) === 'polen' ? 'Polen' : 'Miel', nz(x.num), loteDe(x), nz(x.variedad), nz(x.origen), nz(x.kg), nz(x.fecha), EST_PRD[estPrd(x)][0], nz(x.ubicacion), nz(x.notas)]))]);
     hojas.push(['Envasadora existencias', [['Formato', 'Producto', 'Variedad', 'Tarros', 'Kg']].concat(S.tar.filter((x) => findFmt(x.formatoId)).map((x) => { const f = findFmt(x.formatoId); return [f.nombre, prodEnv(f.prod)[1], nz(x.variedad), Number(x.cantidad) || 0, kgDeTarros(f, Number(x.cantidad) || 0)]; }))]);
-    hojas.push(['Lotes de envasado', [['Fecha', 'Lote', 'Formato', 'Variedad', 'Tarros', 'Kg', 'Bidón', 'Notas']].concat(S.env.slice().sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))).map((e) => [nz(e.fecha), nz(e.lote), (findFmt(e.formatoId) || {}).nombre || nz(e.formatoNom), nz(e.variedad), e.n, nz(e.kg), nz(e.bidonNum), nz(e.notas)]))]);
+    hojas.push(['Lotes de envasado', [['Fecha', 'Lote', 'Formato', 'Variedad', 'Tarros', 'Kg', 'Bidón', 'Lote del bidón', 'Notas']].concat(S.env.slice().sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))).map((e) => [nz(e.fecha), nz(e.lote), (findFmt(e.formatoId) || {}).nombre || nz(e.formatoNom), nz(e.variedad), e.n, nz(e.kg), nz(e.bidonNum), nz(e.bidonLote), nz(e.notas)]))]);
     hojas.push(['Pedidos', [['Nº', 'Fecha', 'Cliente', 'Contacto', 'Canal', 'Productos', 'Total €', 'Estado', 'Cobrado', 'Dirección', 'Notas']].concat(S.ped.slice().sort((a, b) => (Number(b.num) || 0) - (Number(a.num) || 0)).map((p) => [p.num, nz(p.fecha), nz(p.cliente), nz(p.contacto), nz(p.canal), (p.lineas || []).map(lineaTxt).join(' · '), totalPed(p), estPed(p.estado)[1], p.cobrado ? 'Sí' : 'No', nz(p.direccion), nz(p.notas)]))]);
     hojas.push(['Gastos', [['Tipo', 'Concepto', 'Categoría', 'Importe €', 'Frecuencia', 'Importe anual €', 'Fecha', 'Notas']].concat(gastos)]);
     hojas.push(['Ingresos', [['Fecha', 'Producto', 'Variedad', 'Cliente', 'Cantidad', 'Unidad', 'Precio por unidad €', 'Total €', 'Notas']].concat(
@@ -1381,10 +1404,12 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   }
   const almTabs = () => '<div class="subnav" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-label="Almacén">' + [['material', 'Material'], ['productos', 'Productos']].map((t) => '<button data-act="alm-tab" data-v="' + t[0] + '"' + (S.almTab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>').join('') + '</div>';
   function viewAlmacen() { return almTabs() + (S.almTab === 'productos' ? viewProductos() : viewMaterial('material')); }
+  /* Tamaño en gramos leído del nombre («Tarro 2 kg» → 2000). Si hay varios, el mayor. */
+  const tamG = (n) => { let m = 0; String(n || '').replace(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/gi, (_, x, u) => { m = Math.max(m, parseFloat(x.replace(',', '.')) * (u.toLowerCase() === 'kg' ? 1000 : 1)); return _; }); return m; };
   function viewMaterial(sec) {
     if (!S.loaded.alm) return '<p class="muted">Abriendo el almacén…</p>';
     const env = sec === 'envasadora', CATS = catsDe(sec), ds = env ? ' data-sec="envasadora"' : '';
-    const items = S.alm.filter((x) => secAlm(x) === sec).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    const items = S.alm.filter((x) => secAlm(x) === sec).sort(env ? ((a, b) => tamG(b.nombre) - tamG(a.nombre) || String(a.nombre).localeCompare(String(b.nombre), 'es')) : ((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')));
     const cats = CATS.map((c) => ({ k: c[0], t: c[1], l: items.filter((x) => catK(x) === c[0]) })).filter((c) => c.l.length);
     const f = cats.some((c) => c.k === S.filtroAlm) ? S.filtroAlm : 'todos';
     const cab = '<header class="top"><p class="eyebrow">' + items.length + ' ' + plural(items.length, 'artículo', 'artículos') + (env ? ' de envasado' : '') + '</p><h1>' + (env ? 'Material de envasado' : 'Almacén') + '</h1></header>';
@@ -1406,7 +1431,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
 
 
   /* ---------- Almacén: productos (bidones de miel numerados) ---------- */
-  const EST_PRD = { almacen: ['En almacén', 'ok'], envasado: ['Envasado', 'warn'], vendido: ['Vendido', 'none'] };
+  const EST_PRD = { almacen: ['En almacén', 'ok'], enuso: ['En uso', 'warn'], envasado: ['Envasado', 'none'], vendido: ['Vendido', 'none'] };
+  /* Lote del bidón: el que se le haya puesto o, si no, uno automático: M (miel) / P (polen) + año + nº de bidón. */
+  const loteAuto = (x) => (x.prod === 'polen' ? 'P' : 'M') + String(x.fecha || anioAct()).slice(2, 4) + '-' + String(x.num == null ? '' : x.num).padStart(3, '0');
+  const loteDe = (x) => String(x.lote || '').trim() || loteAuto(x);
   const MIELES_DEF = ['Encina', 'Mil flores', 'Retama', 'Bosque', 'Cañaveral', 'Tierra Vieja', 'Zamarril'];
   const prodPrd = (x) => x.prod === 'polen' ? 'polen' : 'miel';
   const LP = { miel: { u: 'bidón', p: 'bidones', U: 'Bidón', tipo: 'Tipo de miel', ph: 'Retama, encina, mil flores…', defs: null }, polen: { u: 'bidón', p: 'bidones', U: 'Bidón', tipo: 'Tipo de polen', ph: 'Seco, fresco…', defs: ['Fresco', 'Seco'] } };
@@ -1417,7 +1445,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const bidTxt = (l, pr) => l.length + ' ' + plural(l.length, LP[pr || 'miel'].u, LP[pr || 'miel'].p) + (kgPrd(l) > 0 ? ' · ' + fmtN(kgPrd(l)) + ' kg' : '');
   const campPrd = (x) => (x.fecha || '').slice(0, 4) || String(new Date().getFullYear());
   function filaPrd(x) {
-    const e = estPrd(x), sub = [x.origen, x.kg != null && x.kg !== '' ? fmtN(x.kg) + ' kg' : '', x.fecha ? fmtCorta(x.fecha) : '', x.ubicacion].filter(Boolean).join(' · ');
+    const e = estPrd(x), sub = ['Lote ' + loteDe(x), x.origen, x.kg != null && x.kg !== '' ? fmtN(x.kg) + ' kg' : '', x.fecha ? fmtCorta(x.fecha) : '', x.ubicacion].filter(Boolean).join(' · ');
     return '<button class="row" data-act="edit-prd" data-id="' + esc(x.id) + '"><span class="badge k-' + EST_PRD[e][1] + '"><b>' + esc(x.num == null || x.num === '' ? '–' : x.num) + '</b></span><span class="row-main"><b>' + esc(varPrd(x)) + '</b>' + (sub ? '<span class="muted">' + esc(sub) + '</span>' : '') + (x.notas ? '<span class="note">' + esc(x.notas) + '</span>' : '') + '<span>' + pill({ k: EST_PRD[e][1], t: EST_PRD[e][0] }) + '</span></span></button>';
   }
   function viewProductos() {
@@ -1428,14 +1456,14 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const cab = '<header class="top"><p class="eyebrow">' + todos.length + ' ' + plural(todos.length, L.u, L.p) + '</p><h1>Almacén</h1></header>' + ptabs;
     const botones = '<div class="actions"><button class="btn primary" data-act="new-prd" data-prod="' + pr + '">Añadir ' + L.u + '</button></div>';
     if (!todos.length) return '<div class="stack">' + cab + '<div class="empty"><p>' + (pr === 'polen' ? 'Aquí se apuntan los bidones de polen con su número: si es seco o fresco, de qué asentamiento viene, cuántos kilos lleva y si sigue en el almacén, se ha envasado o se ha vendido.' : 'Aquí se apuntan los bidones de miel con su número: de qué tipo de miel es cada uno, de qué asentamiento viene, cuántos kilos lleva y si sigue en el almacén, se ha envasado o se ha vendido. Así sabes siempre qué hay en cada bidón.') + '</p>' + botones + '</div></div>';
-    const est = (k) => todos.filter((x) => estPrd(x) === k);
-    const fe = ['almacen', 'envasado', 'vendido', 'todos'].indexOf(S.filtroPrdE) >= 0 ? S.filtroPrdE : 'almacen';
+    const est = (k) => todos.filter((x) => estPrd(x) === k || (k === 'almacen' && estPrd(x) === 'enuso'));
+    const fe = ['almacen', 'enuso', 'envasado', 'vendido', 'todos'].indexOf(S.filtroPrdE) >= 0 ? S.filtroPrdE : 'almacen';
     const base = todos.filter((x) => fe === 'todos' || estPrd(x) === fe);
     const vars = Array.from(new Set(base.map(varPrd))).sort((a, b) => a.localeCompare(b, 'es'));
     const fv = vars.indexOf(S.filtroPrdV) >= 0 ? S.filtroPrdV : 'todas';
     const lista = base.filter((x) => fv === 'todas' || varPrd(x) === fv);
     const grupos = Array.from(new Set(lista.map(varPrd))).sort((a, b) => a.localeCompare(b, 'es')).map((v) => ({ v, l: lista.filter((x) => varPrd(x) === v) }));
-    const chipE = [['almacen', 'En almacén'], ['envasado', 'Envasados'], ['vendido', 'Vendidos'], ['todos', 'Todos']].map((c) => '<button class="chip" data-act="filtro-prd-e" data-v="' + c[0] + '" aria-pressed="' + (fe === c[0]) + '">' + c[1] + '</button>').join('');
+    const chipE = [['almacen', 'En almacén'], ['enuso', 'En uso'], ['envasado', 'Envasados'], ['vendido', 'Vendidos'], ['todos', 'Todos']].map((c) => '<button class="chip" data-act="filtro-prd-e" data-v="' + c[0] + '" aria-pressed="' + (fe === c[0]) + '">' + c[1] + '</button>').join('');
     const chipV = vars.length > 1 ? '<div class="chips" role="group" aria-label="Filtrar por tipo"><button class="chip" data-act="filtro-prd-v" data-v="todas" aria-pressed="' + (fv === 'todas') + '">' + (pr === 'polen' ? 'Todos los tipos' : 'Todas las mieles') + '</button>' + vars.map((v) => '<button class="chip" data-act="filtro-prd-v" data-v="' + esc(v) + '" aria-pressed="' + (fv === v) + '">' + esc(v) + '</button>').join('') + '</div>' : '';
     return '<div class="stack">' + cab + botones +
       '<dl class="facts-row c2"><div><dt>En almacén</dt><dd>' + est('almacen').length + ' <small>' + L.p + '</small></dd></div><div><dt>Kilos en almacén</dt><dd>' + fmtN(kgPrd(est('almacen'))) + ' <small>kg</small></dd></div></dl>' +
@@ -1455,6 +1483,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       '<div class="grid2">' + fld('b-num', x ? 'Número de ' + L.u : 'Del nº', inp('b-num', 'text', v.num, 'inputmode="numeric" autocomplete="off"')) + (x ? fld('b-kg', 'Kilos', inp('b-kg', 'number', v.kg, 'min="0" step="any" inputmode="decimal"'), 'Opcional') : fld('b-hasta', 'Hasta el nº', inp('b-hasta', 'text', '', 'inputmode="numeric" autocomplete="off"'), 'Opcional: crea varios seguidos')) + '</div>' +
       fld('b-var', L.tipo, inp('b-var', 'text', v.variedad, 'list="dl-bvar" autocomplete="off" placeholder="' + L.ph + '"')) +
       '<datalist id="dl-bvar">' + vs.map((o) => '<option value="' + esc(o) + '">').join('') + '</datalist>' +
+      fld('b-lote', 'Nº de lote', inp('b-lote', 'text', x ? x.lote : '', 'autocomplete="off" placeholder="' + esc(x ? loteAuto(x) : (pr === 'polen' ? 'P' : 'M') + anioAct().slice(2) + '-001') + '"'), x ? 'Si lo dejas vacío: ' + loteAuto(x) : 'Si lo dejas vacío se pone solo: ' + (pr === 'polen' ? 'P' : 'M') + ' + año + nº de bidón') +
       fld('b-ori', 'Procedencia (asentamiento)', inp('b-ori', 'text', v.origen, 'list="dl-bori" autocomplete="off" placeholder="Cañaveral, Tierra Vieja, Zamarril…"'), 'Opcional') +
       '<datalist id="dl-bori">' + os.map((o) => '<option value="' + esc(o) + '">').join('') + '</datalist>' +
       (x ? '' : fld('b-kg', 'Kilos de cada ' + L.u, inp('b-kg', 'number', v.kg, 'min="0" step="any" inputmode="decimal"'), 'Opcional')) +
@@ -1481,9 +1510,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       }
     }
     const fecha = val('b-fecha') || '';
-    const doc = { tipo: 'bidon', prod: pr, variedad: (val('b-var') || '').trim(), origen: (val('b-ori') || '').trim(), kg: num('b-kg'), fecha, estado: val('b-est') || 'almacen', ubicacion: val('b-ubi'), notas: val('b-notas') };
+    const doc = { tipo: 'bidon', prod: pr, lote: nums.length > 1 ? '' : (val('b-lote') || '').trim(), variedad: (val('b-var') || '').trim(), origen: (val('b-ori') || '').trim(), kg: num('b-kg'), fecha, estado: val('b-est') || 'almacen', ubicacion: val('b-ubi'), notas: val('b-notas') };
     if (doc.kg != null && doc.kg < 0) return showErr('b-err', 'Los kilos no pueden ser negativos.');
     const camp = fecha.slice(0, 4) || String(new Date().getFullYear());
+    if (doc.lote && S.prd.some((y) => y.id !== id && keyN(loteDe(y)) === keyN(doc.lote))) return showErr('b-err', 'Ya hay otro bidón con el lote ' + doc.lote + '.');
     const dup = nums.filter((n) => S.prd.some((y) => y.id !== id && String(y.num).trim() === n && prodPrd(y) === pr && campPrd(y) === camp));
     if (dup.length) return showErr('b-err', 'Ya hay ' + (dup.length > 1 ? L.p + ' con los números ' + dup.slice(0, 6).join(', ') + (dup.length > 6 ? '…' : '') : 'un ' + L.u + ' con el número ' + dup[0]) + ' en la campaña ' + camp + '.');
     const ok = await run(async () => { for (const n of nums) await S.store.set(PRD, old ? id : S.store.newId(), Object.assign({}, doc, { num: n, ts: old ? (old.ts || Date.now()) : Date.now() })); }, old ? 'Cambios guardados' : (nums.length > 1 ? nums.length + ' ' + L.p + ' añadidos' : L.U + ' añadido'));
@@ -2044,7 +2074,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const CANALES = ['Web', 'Tienda', 'Cliente directo', 'Teléfono / WhatsApp', 'Feria o mercado', 'Otro'];
   const findFmt = (id) => S.fmt.find((f) => f.id === id);
   const slugV = (v) => keyN(v).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sin';
-  const tarId = (fid, v) => 't_' + fid + '_' + slugV(v);
+  const vCat = (v) => { const c = catDe(v); return c ? c[0] : String(v || '').trim(); };
+  const tarId = (fid, v) => 't_' + fid + '_' + slugV(vCat(v));
   const tarDe = (fid, v) => S.tar.find((t) => t.id === tarId(fid, v));
   const varTxt = (v) => String(v || '').trim() || 'Sin variedad';
   const kgDeTarros = (f, n) => f && Number(f.gramos) > 0 ? Number(f.gramos) * n / 1000 : 0;
@@ -2053,7 +2084,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   async function ajustarTarros(fid, v, delta) {
     const id = tarId(fid, v), t = S.tar.find((x) => x.id === id), antes = t ? Number(t.cantidad) || 0 : 0, despues = Math.max(0, antes + delta);
     if (t) await S.store.update(TAR, id, { cantidad: despues, ts: Date.now() });
-    else await S.store.set(TAR, id, { formatoId: fid, variedad: String(v || '').trim(), cantidad: despues, ts: Date.now() });
+    else await S.store.set(TAR, id, { formatoId: fid, variedad: vCat(v), cantidad: despues, ts: Date.now() });
     return despues - antes;
   }
   async function ajustarMaterial(lista, signo) {
@@ -2072,6 +2103,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const pedAbiertos = () => S.ped.filter((p) => !p.estado || p.estado === 'nuevo' || p.estado === 'preparado').length;
   function viewEnvasadora() {
     if (!S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped || !S.loaded.alm) return '<p class="muted">Abriendo la envasadora…</p>';
+    setTimeout(ordenarEnvasado, 0);
     const t = S.envTab || 'existencias';
     return t === 'pedidos' ? viewPedidos() : t === 'lotes' ? viewLotes() : t === 'formatos' ? viewFormatos() : t === 'material' ? viewMaterial('envasadora') : viewTarros();
   }
@@ -2081,25 +2113,30 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   function viewTarros() {
     const res = reservados();
     const filas = S.tar.filter((x) => findFmt(x.formatoId) && ((Number(x.cantidad) || 0) > 0 || res[x.id]));
-    const total = filas.reduce((a, x) => a + (Number(x.cantidad) || 0), 0);
-    const kg = filas.reduce((a, x) => a + kgDeTarros(findFmt(x.formatoId), Number(x.cantidad) || 0), 0);
     const botones = '<div class="actions"><button class="btn primary" data-act="new-lote">🫙 Envasar</button><button class="btn" data-act="new-ped">+ Nuevo pedido</button><button class="btn" data-act="new-tar">Ajustar existencias</button></div>';
-    if (!S.fmt.length) return '<div class="stack">' + cabEnv('Tarros envasados') + sinFormatos() + '</div>';
-    const grupos = {};
-    filas.forEach((x) => { const f = findFmt(x.formatoId), k = prodEnv(f.prod)[1] + ' · ' + varTxt(x.variedad); (grupos[k] = grupos[k] || []).push({ x, f }); });
-    const fila = (o) => { const st = Number(o.x.cantidad) || 0, r = res[o.x.id] || 0, disp = st - r;
-      return '<div class="item"><button class="item-main" data-act="edit-tar" data-id="' + esc(o.x.id) + '"><b>' + esc(o.f.nombre) + '</b><span class="muted">' + esc(varTxt(o.x.variedad)) + (o.f.gramos ? ' · ' + fmtN(kgDeTarros(o.f, st)) + ' kg' : '') + '</span>' +
+    if (!S.fmt.length) return '<div class="stack">' + cabEnv('Existencias') + sinFormatos() + '</div>';
+    /* Agrupado por formato: cuántos tarros hay de cada uno y, dentro, de qué miel o polen. */
+    const fmts = S.fmt.filter((f) => filas.some((x) => x.formatoId === f.id)).sort(ordFmt);
+    const fila = (x) => { const st = Number(x.cantidad) || 0, r = res[x.id] || 0, disp = st - r;
+      return '<div class="item"><button class="item-main" data-act="edit-tar" data-id="' + esc(x.id) + '"><b>' + esc(varTxt(x.variedad)) + '</b>' +
         (r ? '<span class="muted">' + r + ' en pedidos abiertos · disponibles ' + disp + '</span>' : '') + (disp < 0 ? '<span class="pill k-late"><i></i>Faltan ' + (-disp) + ' para los pedidos</span>' : st === 0 ? '<span class="pill k-late"><i></i>Agotado</span>' : '') + '</button>' +
         '<span class="qty">' + st + ' <small>tarros</small></span>' +
-        '<button class="step" data-act="step-tar" data-id="' + esc(o.x.id) + '" data-d="-1" aria-label="Restar un tarro">−1</button><button class="step" data-act="step-tar" data-id="' + esc(o.x.id) + '" data-d="1" aria-label="Sumar un tarro">+1</button></div>'; };
-    return '<div class="stack">' + cabEnv(total + ' ' + plural(total, 'tarro envasado', 'tarros envasados')) + botones +
-      '<dl class="facts-row"><div><dt>Tarros</dt><dd>' + total + '</dd></div><div><dt>Kilos envasados</dt><dd>' + fmtN(Math.round(kg * 10) / 10) + ' <small>kg</small></dd></div><div class="tap" role="button" tabindex="0" data-act="env-tab" data-v="pedidos"><dt>Pedidos abiertos ›</dt><dd>' + pedAbiertos() + '</dd></div></dl>' +
-      (Object.keys(grupos).length ? Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'es')).map((k) => '<section class="sect"><div class="catline"><h3>' + esc(k) + '</h3><span class="muted">' + grupos[k].reduce((a, o) => a + (Number(o.x.cantidad) || 0), 0) + ' tarros</span></div><div class="list">' + grupos[k].map(fila).join('') + '</div></section>').join('')
+        '<button class="step" data-act="step-tar" data-id="' + esc(x.id) + '" data-d="-1" aria-label="Restar un tarro">−1</button><button class="step" data-act="step-tar" data-id="' + esc(x.id) + '" data-d="1" aria-label="Sumar un tarro">+1</button></div>'; };
+    return '<div class="stack">' + cabEnv('Existencias') + botones +
+      (fmts.length ? fmts.map((f) => { const l = filas.filter((x) => x.formatoId === f.id).sort((a, b) => varTxt(a.variedad).localeCompare(varTxt(b.variedad), 'es')), t = l.reduce((a, x) => a + (Number(x.cantidad) || 0), 0);
+          return '<section class="sect"><div class="catline"><h3>' + esc(f.nombre) + '</h3><span class="muted"><b>' + t + '</b> ' + plural(t, 'tarro', 'tarros') + '</span></div><div class="list">' + l.map(fila).join('') + '</div></section>'; }).join('')
         : '<div class="empty"><p>Todavía no hay tarros envasados. Pulsa <b>Envasar</b> cada vez que llenéis tarros, o <b>Ajustar existencias</b> para apuntar los que ya tenéis.</p></div>') +
-      '<p class="hint">Los tarros suben al envasar y bajan cuando un pedido pasa a «Enviado» o «Entregado». Usa −1 / +1 para roturas, muestras o regalos.</p></div>';
+      '<p class="hint">Los tarros suben al envasar y bajan cuando un pedido pasa a «Enviado» o «Entregado». Usa −1 / +1 para roturas, muestras o regalos. Los kilos y las estadísticas están en <b>Envasado</b>.</p></div>';
   }
-  function opcFmt(sel) { return S.fmt.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')).map((f) => '<option value="' + esc(f.id) + '"' + (f.id === sel ? ' selected' : '') + '>' + esc(f.nombre) + '</option>').join(''); }
-  function variedadesConocidas() { return Array.from(new Set(MIELES_DEF.concat(['Seco', 'Fresco'], S.prd.map((y) => (y.variedad || '').trim()), S.tar.map((y) => (y.variedad || '').trim())).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')); }
+  const ordFmt = (a, b) => String(a.prod || '').localeCompare(String(b.prod || '')) || (Number(a.gramos) || 0) - (Number(b.gramos) || 0) || String(a.nombre).localeCompare(String(b.nombre), 'es');
+  function opcFmt(sel) { return S.fmt.slice().sort(ordFmt).map((f) => '<option value="' + esc(f.id) + '"' + (f.id === sel ? ' selected' : '') + '>' + esc(f.nombre) + '</option>').join(''); }
+  /* Lo que vendéis: tipo de miel, miel base (para las especiales) y tamaños. */
+  const TODOS_TAM = ['5 kg', '2 kg', '1 kg', '500 g', '250 g', '45 g'];
+  const CATALOGO = [['Encina', '', TODOS_TAM], ['Bosque', '', TODOS_TAM], ['Retama', '', TODOS_TAM], ['Flores', '', TODOS_TAM], ['Con pistachos', 'Bosque', ['250 g', '45 g']], ['Con nueces', 'Flores', ['500 g', '250 g', '45 g']], ['Con trufa', 'Bosque', ['250 g', '45 g']]];
+  const catDe = (v) => CATALOGO.find((c) => keyN(c[0]) === keyN(v) || (c[0] === 'Flores' && /^mil ?flores$/.test(keyN(v))));
+  const canonVar = (v) => { const c = catDe(v); return c ? c[0] : varTxt(v); };
+  const baseTxt = (v) => { const c = catDe(v); return c && c[1] ? ' (miel de ' + c[1].toLowerCase() + ')' : ''; };
+  function variedadesConocidas() { const cat = CATALOGO.map((c) => c[0]); return cat.concat(Array.from(new Set(MIELES_DEF.concat(['Seco', 'Fresco'], S.prd.map((y) => (y.variedad || '').trim()), S.tar.map((y) => (y.variedad || '').trim())).filter(Boolean))).filter((v) => !catDe(v) && keyN(v) !== 'mil flores').sort((a, b) => a.localeCompare(b, 'es'))); }
   const dlVar = () => '<datalist id="dl-evar">' + variedadesConocidas().map((o) => '<option value="' + esc(o) + '">').join('') + '</datalist>';
   function sheetTar(s) {
     const x = s.id ? S.tar.find((y) => y.id === s.id) : null;
@@ -2107,7 +2144,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return head('Envasadora', x ? 'Corregir existencias' : 'Ajustar existencias') + '<form data-form="tar" data-id="' + esc(s.id || '') + '" novalidate>' +
       '<p class="hint">Para apuntar los tarros que ya tenéis llenos o corregir un recuento. Para registrar un envasado nuevo usa <b>Envasar</b>, que además descuenta el material.</p>' +
       fld('t-fmt', 'Formato', '<select id="t-fmt"' + (x ? ' disabled' : '') + '>' + opcFmt(x ? x.formatoId : '') + '</select>') +
-      fld('t-var', 'Variedad', inp('t-var', 'text', x ? x.variedad : '', 'list="dl-evar" autocomplete="off" placeholder="Encina, mil flores…"' + (x ? ' disabled' : ''))) + dlVar() +
+      fld('t-var', 'Variedad', inp('t-var', 'text', x ? x.variedad : '', 'list="dl-evar" autocomplete="off" placeholder="Encina, bosque, con trufa…"' + (x ? ' disabled' : ''))) + dlVar() +
       fld('t-n', 'Tarros que hay ahora', inp('t-n', 'number', x ? x.cantidad : '', 'min="0" step="1" inputmode="numeric"')) +
       '<p class="err" id="t-err" hidden></p><button class="btn primary" type="submit">Guardar</button></form>';
   }
@@ -2117,14 +2154,15 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (!findFmt(fid)) return showErr('t-err', 'Elige un formato.');
     if (n == null || n < 0 || Math.floor(n) !== n) return showErr('t-err', 'Indica cuántos tarros hay, con un número entero.');
     const id = tarId(fid, v), cur = S.tar.find((y) => y.id === id);
-    const ok = await run(() => cur ? S.store.update(TAR, id, { cantidad: n, ts: Date.now() }) : S.store.set(TAR, id, { formatoId: fid, variedad: String(v || '').trim(), cantidad: n, ts: Date.now() }), 'Existencias guardadas');
+    const ok = await run(() => cur ? S.store.update(TAR, id, { cantidad: n, ts: Date.now() }) : S.store.set(TAR, id, { formatoId: fid, variedad: vCat(v), cantidad: n, ts: Date.now() }), 'Existencias guardadas');
     if (ok) closeSheet();
   }
   /* --- envasar: lote de envasado --- */
   function bidonesPara(f) {
     const pr = f && f.prod === 'miel' ? 'miel' : f && (f.prod === 'polen' || f.prod === 'polenfresco') ? 'polen' : null;
-    return pr ? S.prd.filter((x) => prodPrd(x) === pr && estPrd(x) === 'almacen').sort(numCmp) : [];
+    return pr ? S.prd.filter((x) => prodPrd(x) === pr && (estPrd(x) === 'almacen' || estPrd(x) === 'enuso')).sort((a, b) => (estPrd(a) === 'enuso' ? 0 : 1) - (estPrd(b) === 'enuso' ? 0 : 1) || numCmp(a, b)) : [];
   }
+  const opcBid = (f) => '<option value="">Ninguno / no restar kilos</option>' + bidonesPara(f).map((b) => '<option value="' + esc(b.id) + '">' + (estPrd(b) === 'enuso' ? '▶ En uso · ' : '') + 'Lote ' + esc(loteDe(b)) + ' · nº ' + esc(b.num) + ' · ' + esc(varPrd(b)) + ' · ' + fmtN(b.kg || 0) + ' kg</option>').join('');
   function recetaTxt(f, n) {
     const r = (f && f.receta || []).map((m) => ({ m, x: S.alm.find((y) => y.id === m.id) })).filter((o) => o.x);
     if (!r.length) return '<p class="hint">Este formato no tiene material asignado. Puedes asignarlo en la pestaña Formatos.</p>';
@@ -2134,22 +2172,22 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   function loteResumen() {
     const f = findFmt(val('l-fmt')), n = num('l-n') || 0, z = document.getElementById('l-res'); if (!z) return;
     const kg = kgDeTarros(f, n), b = S.prd.find((y) => y.id === val('l-bid'));
-    z.innerHTML = (f && f.gramos ? '<p class="hint">Se usan <b>' + fmtN(Math.round(kg * 100) / 100) + ' kg</b> de ' + esc(prodEnv(f.prod)[1].toLowerCase()) + (b ? ' del bidón nº ' + esc(b.num) + ' (tiene ' + fmtN(b.kg || 0) + ' kg' + (Number(b.kg) < kg ? ', <b>no llega</b>' : '') + ')' : '') + '.</p>' : '') +
+    z.innerHTML = (f && f.gramos ? '<p class="hint">Se usan <b>' + fmtN(Math.round(kg * 100) / 100) + ' kg</b> de ' + esc(prodEnv(f.prod)[1].toLowerCase()) + (b ? ' del bidón nº ' + esc(b.num) + ' (tiene ' + fmtN(b.kg || 0) + ' kg' + (Number(b.kg) < kg ? ', <b>no llega</b>' : '') + ') · lote ' + esc(loteDe(b)) : '') + '.</p>' : '') +
       '<p class="hint" style="margin-top:6px"><b>Material que se descuenta del almacén:</b></p>' + recetaTxt(f, n);
   }
   function sheetLote(s) {
     if (s.id) { const e = S.env.find((y) => y.id === s.id); if (!e) return ''; const f = findFmt(e.formatoId);
       return head('Lote de envasado', (e.lote ? e.lote + ' · ' : '') + fmtCorta(e.fecha)) +
-        '<dl class="facts-row c2"><div><dt>Producto</dt><dd style="font-size:1.1rem">' + esc((f ? f.nombre : e.formatoNom || '') + ' · ' + varTxt(e.variedad)) + '</dd></div><div><dt>Tarros</dt><dd>' + e.n + '</dd></div><div><dt>Kilos</dt><dd>' + fmtN(e.kg || 0) + ' <small>kg</small></dd></div><div><dt>Bidón</dt><dd>' + (e.bidonNum ? 'Nº ' + esc(e.bidonNum) : '—') + '</dd></div></dl>' +
+        '<dl class="facts-row c2"><div><dt>Producto</dt><dd style="font-size:1.1rem">' + esc((f ? f.nombre : e.formatoNom || '') + ' · ' + varTxt(e.variedad)) + '</dd></div><div><dt>Tarros</dt><dd>' + e.n + '</dd></div><div><dt>Kilos</dt><dd>' + fmtN(e.kg || 0) + ' <small>kg</small></dd></div><div><dt>Bidón</dt><dd>' + (e.bidonNum ? 'Nº ' + esc(e.bidonNum) + (e.bidonLote ? '<br><small>lote ' + esc(e.bidonLote) + '</small>' : '') : '—') + '</dd></div></dl>' +
         (e.notas ? '<p class="note">' + esc(e.notas) + '</p>' : '') +
         '<div id="del-zone"><button class="btn plain" data-act="ask-del-lote" data-id="' + esc(e.id) + '">Eliminar este lote</button></div>'; }
     if (!S.fmt.length) return head('Envasadora', 'Envasar') + sinFormatos();
     const d = new Date(), loteDef = 'L' + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate());
     const f0 = findFmt(S.ultFmt) || S.fmt[0];
     return head('Envasadora', 'Envasar') + '<form data-form="lote" novalidate>' +
-      '<div class="grid2">' + fld('l-fecha', 'Fecha', inp('l-fecha', 'date', hoy())) + fld('l-lote', 'Lote', inp('l-lote', 'text', loteDef, 'autocomplete="off"')) + '</div>' +
+      '<div class="grid2">' + fld('l-fecha', 'Fecha', inp('l-fecha', 'date', hoy())) + fld('l-lote', 'Lote de los tarros', inp('l-lote', 'text', loteDef, 'autocomplete="off" data-def="' + loteDef + '"'), 'Al elegir bidón se pone su lote') + '</div>' +
       fld('l-fmt', 'Formato', '<select id="l-fmt">' + opcFmt(f0.id) + '</select>') +
-      fld('l-bid', 'Bidón del que sale', '<select id="l-bid"><option value="">Ninguno / no restar kilos</option>' + bidonesPara(f0).map((b) => '<option value="' + esc(b.id) + '">Nº ' + esc(b.num) + ' · ' + esc(varPrd(b)) + ' · ' + fmtN(b.kg || 0) + ' kg</option>').join('') + '</select>') +
+      fld('l-bid', 'Bidón del que sale', '<select id="l-bid">' + opcBid(f0) + '</select>', 'Primero salen los que ya están en uso') +
       '<div class="grid2">' + fld('l-var', 'Variedad', inp('l-var', 'text', '', 'list="dl-evar" autocomplete="off" placeholder="Encina…"')) + fld('l-n', 'Tarros llenados', inp('l-n', 'number', '', 'min="1" step="1" inputmode="numeric"')) + '</div>' + dlVar() +
       '<div id="l-res"></div>' +
       '<label class="chk"><input type="checkbox" id="l-mat" checked>Descontar el material del almacén</label>' +
@@ -2167,10 +2205,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const restaKg = b && (document.getElementById('l-kg') || {}).checked ? Math.min(kg, Number(b.kg) || 0) : 0;
     S.ultFmt = f.id;
     const ok = await run(async () => {
-      await S.store.set(ENV, S.store.newId(), { fecha, lote: val('l-lote'), formatoId: f.id, formatoNom: f.nombre, variedad: v, n, kg, bidonId: b ? b.id : '', bidonNum: b ? String(b.num) : '', bidonKg: restaKg, mat, notas: val('l-notas'), ts: Date.now() });
+      await S.store.set(ENV, S.store.newId(), { fecha, lote: val('l-lote'), formatoId: f.id, formatoNom: f.nombre, variedad: v, n, kg, bidonId: b ? b.id : '', bidonNum: b ? String(b.num) : '', bidonLote: b ? loteDe(b) : '', prod: f.prod, bidonKg: restaKg, mat, notas: val('l-notas'), ts: Date.now() });
       await ajustarTarros(f.id, v, n);
       await ajustarMaterial(mat, -1);
-      if (b && restaKg > 0) { const quedan = Math.max(0, Math.round(((Number(b.kg) || 0) - restaKg) * 100) / 100); await S.store.update(PRD, b.id, quedan <= 0 ? { kg: 0, estado: 'envasado' } : { kg: quedan }); }
+      if (b && restaKg > 0) { const quedan = Math.max(0, Math.round(((Number(b.kg) || 0) - restaKg) * 100) / 100); await S.store.update(PRD, b.id, quedan <= 0 ? { kg: 0, estado: 'envasado' } : { kg: quedan, estado: 'enuso' }); }
     }, n + ' tarros envasados');
     if (ok) closeSheet();
   }
@@ -2181,31 +2219,93 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       if (devolver) {
         await ajustarMaterial(e.mat, 1);
         const b = S.prd.find((y) => y.id === e.bidonId);
-        if (b && e.bidonKg > 0) await S.store.update(PRD, b.id, { kg: Math.round(((Number(b.kg) || 0) + e.bidonKg) * 100) / 100, estado: 'almacen' });
+        if (b && e.bidonKg > 0) await S.store.update(PRD, b.id, { kg: Math.round(((Number(b.kg) || 0) + e.bidonKg) * 100) / 100, estado: S.env.some((y) => y.id !== e.id && y.bidonId === b.id) ? 'enuso' : 'almacen' });
       }
       await S.store.del(ENV, id);
     }, 'Lote eliminado');
     if (ok) closeSheet();
   }
+  /* Bloque de estadística: filas con nombre, valor y barra proporcional. */
+  function estBloque(titulo, filas, fmtV, nota) {
+    if (!filas.length) return '';
+    const max = Math.max.apply(null, filas.map((f) => f.v)) || 1;
+    return '<section class="sect"><div class="catline"><h3>' + esc(titulo) + '</h3></div><div class="est">' +
+      filas.map((f) => '<div class="est-f"><b>' + esc(f.k) + '</b><span>' + fmtV(f.v) + '</span><span class="meter"><i style="width:' + Math.max(2, Math.round(f.v / max * 100)) + '%"></i></span>' + (f.sub ? '<small>' + esc(f.sub) + '</small>' : '') + '</div>').join('') +
+      '</div>' + (nota ? '<p class="hint">' + nota + '</p>' : '') + '</section>';
+  }
+  const kgT = (v) => fmtN(Math.round(v * 10) / 10) + ' <small>kg</small>';
+  const sumaPor = (l, kf, vf, sf) => { const m = {}; l.forEach((x) => { const k = kf(x); if (!m[k]) m[k] = { k, v: 0, a: [] }; m[k].v += vf(x); m[k].a.push(x); }); return Object.values(m).filter((o) => o.v > 0).sort((a, b) => b.v - a.v).map((o) => ({ k: o.k, v: o.v, sub: sf ? sf(o.a) : '' })); };
   function viewLotes() {
     const l = S.env.slice().sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')) || (b.ts || 0) - (a.ts || 0));
-    const y = anioAct(), delAnio = l.filter((e) => (e.fecha || '').indexOf(y) === 0);
+    /* periodo: un año o todo */
+    const anios = Array.from(new Set([anioAct()].concat(S.env.map((e) => (e.fecha || '').slice(0, 4)), S.ped.map((p) => (p.fecha || '').slice(0, 4))).filter(Boolean))).sort().reverse();
+    const per = S.envAnio === 'todo' || anios.indexOf(S.envAnio) >= 0 ? S.envAnio : anioAct();
+    const enPer = (f) => per === 'todo' || String(f || '').indexOf(per) === 0;
+    const chips = '<div class="chips" role="group" aria-label="Periodo">' + anios.map((y) => '<button class="chip" data-act="env-anio" data-v="' + y + '" aria-pressed="' + (per === y) + '">' + y + '</button>').join('') + '<button class="chip" data-act="env-anio" data-v="todo" aria-pressed="' + (per === 'todo') + '">Todo</button></div>';
+    const perTxt = per === 'todo' ? 'en total' : 'en ' + per;
+    /* lo envasado */
+    const ev = l.filter((e) => enPer(e.fecha)).map((e) => { const f = findFmt(e.formatoId); return { e, f, prod: e.prod || (f && f.prod) || 'miel', kg: Number(e.kg) || 0, n: Number(e.n) || 0 }; });
+    const kgM = ev.filter((o) => o.prod === 'miel').reduce((a, o) => a + o.kg, 0), kgP = ev.filter((o) => o.prod === 'polen' || o.prod === 'polenfresco').reduce((a, o) => a + o.kg, 0);
+    const nT = ev.reduce((a, o) => a + o.n, 0);
+    const tipoNom = (o) => (o.prod === 'miel' ? 'Miel' : prodEnv(o.prod)[1]) + ' · ' + canonVar(o.e.variedad) + baseTxt(o.e.variedad);
+    const porTipo = sumaPor(ev, tipoNom, (o) => o.kg, (a) => a.reduce((s, o) => s + o.n, 0) + ' tarros · ' + a.length + ' ' + plural(a.length, 'lote', 'lotes'));
+    const porFmtEnv = sumaPor(ev, (o) => o.f ? o.f.nombre : (o.e.formatoNom || 'Formato borrado'), (o) => o.n, (a) => fmtN(Math.round(a.reduce((s, o) => s + o.kg, 0) * 10) / 10) + ' kg');
+    /* lo vendido: pedidos enviados o entregados */
+    const lv = [];
+    S.ped.filter((p) => (p.estado === 'enviado' || p.estado === 'entregado') && enPer(p.fecha)).forEach((p) => (p.lineas || []).forEach((x) => { const f = findFmt(x.fid); const n = Number(x.n) || 0; if (!n) return;
+      lv.push({ p, f, n, kg: kgDeTarros(f, n), eur: x.precio != null ? n * Number(x.precio) : 0, v: canonVar(x.v), prod: f ? f.prod : 'otro' }); }));
+    const nPed = new Set(lv.map((o) => o.p.id)).size, eurV = lv.reduce((a, o) => a + o.eur, 0), kgV = lv.reduce((a, o) => a + o.kg, 0);
+    const eurTxt = (a) => { const e = a.reduce((s, o) => s + o.eur, 0); return e > 0 ? eurP(e) : ''; };
+    const masVend = sumaPor(lv, (o) => o.f ? o.f.nombre : 'Formato borrado', (o) => o.n, (a) => [fmtN(Math.round(a.reduce((s, o) => s + o.kg, 0) * 10) / 10) + ' kg', eurTxt(a)].filter(Boolean).join(' · '));
+    const mielVend = sumaPor(lv.filter((o) => o.kg > 0), (o) => (o.prod === 'miel' ? 'Miel' : prodEnv(o.prod)[1]) + ' · ' + o.v + baseTxt(o.v), (o) => o.kg, (a) => a.reduce((s, o) => s + o.n, 0) + ' tarros' + (eurTxt(a) ? ' · ' + eurTxt(a) : ''));
+    const porCanal = sumaPor(lv, (o) => o.p.canal || 'Sin canal', (o) => o.n, (a) => { const np = new Set(a.map((o) => o.p.id)).size; return np + ' ' + plural(np, 'pedido', 'pedidos') + (eurTxt(a) ? ' · ' + eurTxt(a) : ''); });
+    const porCli = sumaPor(lv, (o) => o.p.cliente || 'Sin cliente', (o) => o.n, (a) => { const np = new Set(a.map((o) => o.p.id)).size; return np + ' ' + plural(np, 'pedido', 'pedidos') + (eurTxt(a) ? ' · ' + eurTxt(a) : ''); }).slice(0, 10);
+    /* informe mensual (o anual si se mira «Todo»): por cada periodo, qué se vendió de cada tipo y en qué formatos */
+    const claveP = per === 'todo' ? (f) => String(f || '').slice(0, 4) : (f) => String(f || '').slice(0, 7);
+    const nomP = (k) => per === 'todo' ? 'Año ' + k : cap(parse(k + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+    const periodos = Array.from(new Set(lv.map((o) => claveP(o.p.fecha)).filter(Boolean))).sort().reverse();
+    const informe = periodos.map((k, i) => { const a = lv.filter((o) => claveP(o.p.fecha) === k), kg = a.reduce((s, o) => s + o.kg, 0), n = a.reduce((s, o) => s + o.n, 0), eu = eurTxt(a);
+      const tipos = sumaPor(a, (o) => (o.prod === 'miel' ? 'Miel ' : prodEnv(o.prod)[1] + ' · ') + o.v.toLowerCase() + baseTxt(o.v), (o) => o.n, (b) => { const fm = sumaPor(b, (o) => o.f ? o.f.nombre.replace(/^(Miel|Polen seco|Polen fresco) /, '') : '?', (o) => o.n).map((x) => x.v + ' × ' + x.k).join(', '); return fmtN(Math.round(b.reduce((s, o) => s + o.kg, 0) * 10) / 10) + ' kg · ' + fm + (eurTxt(b) ? ' · ' + eurTxt(b) : ''); });
+      return '<details class="est"' + (i === 0 ? ' open' : '') + '><summary><b>' + esc(nomP(k)) + '</b> · ' + fmtN(Math.round(kg * 10) / 10) + ' kg · ' + n + ' tarros' + (eu ? ' · ' + eu : '') + '</summary>' +
+        tipos.map((t) => '<div class="est-f"><b>' + esc(t.k) + '</b><span>' + t.v + ' <small>tarros</small></span><small>' + esc(t.sub) + '</small></div>').join('') + '</details>'; }).join('');
+    /* trazabilidad de bidones */
+    const bid = S.prd.slice().sort(numCmp);
+    const lotesDe = (b) => S.env.filter((e) => e.bidonId === b.id);
+    const filaBid = (b) => { const ls = lotesDe(b), e = estPrd(b);
+      return '<button class="row" data-act="edit-prd" data-id="' + esc(b.id) + '"><span class="badge k-' + EST_PRD[e][1] + '"><b>' + esc(b.num == null || b.num === '' ? '–' : b.num) + '</b></span><span class="row-main"><b>Lote ' + esc(loteDe(b)) + ' · ' + esc((prodPrd(b) === 'polen' ? 'Polen ' : '') + varPrd(b)) + '</b><span class="muted">' +
+        esc([b.kg != null && b.kg !== '' ? (e === 'envasado' ? '' : 'quedan ' + fmtN(b.kg) + ' kg') : '', b.origen, ls.length ? 'envasado en ' + ls.length + ' ' + plural(ls.length, 'lote', 'lotes') + ' (' + ls.reduce((a, x) => a + (Number(x.n) || 0), 0) + ' tarros): ' + Array.from(new Set(ls.map((x) => x.lote).filter(Boolean))).join(', ') : ''].filter(Boolean).join(' · ')) + '</span><span>' + pill({ k: EST_PRD[e][1], t: EST_PRD[e][0] }) + '</span></span></button>'; };
+    const enUso = bid.filter((b) => estPrd(b) === 'enuso'), enAlm = bid.filter((b) => estPrd(b) === 'almacen'), vacios = bid.filter((b) => estPrd(b) === 'envasado' && lotesDe(b).some((e) => enPer(e.fecha)));
+    const almGrupos = sumaPor(enAlm, (b) => (prodPrd(b) === 'polen' ? 'Polen · ' : 'Miel · ') + varPrd(b), (b) => Number(b.kg) || 0.0001, (a) => a.length + ' ' + plural(a.length, 'bidón', 'bidones') + ': ' + a.map((b) => loteDe(b)).join(', '));
+    const traz = '<section class="sect"><div class="catline"><h3>Bidones en uso</h3><span class="muted">' + enUso.length + '</span></div>' + (enUso.length ? '<div class="list">' + enUso.map(filaBid).join('') + '</div>' : '<p class="hint">Ningún bidón empezado. Al envasar de un bidón sin acabarlo, pasa aquí.</p>') + '</section>' +
+      estBloque('Bidones llenos en almacén · ' + enAlm.length + ' · ' + fmtN(Math.round(kgPrd(enAlm) * 10) / 10) + ' kg', almGrupos.map((o) => ({ k: o.k, v: Math.round(o.v), sub: o.sub })), kgT) +
+      (vacios.length ? '<section class="sect"><div class="catline"><h3>Bidones terminados ' + perTxt + '</h3><span class="muted">' + vacios.length + '</span></div><div class="list">' + vacios.map(filaBid).join('') + '</div></section>' : '');
+    /* historial de lotes */
     let mes = '', h = '';
-    l.forEach((e) => {
+    l.filter((e) => enPer(e.fecha)).forEach((e) => {
       const m = (e.fecha || '').slice(0, 7);
       if (m !== mes) { mes = m; h += '<p class="month">' + esc(cap(parse(e.fecha).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }))) + '</p>'; }
       const f = findFmt(e.formatoId);
-      h += '<button class="row" data-act="open-lote" data-id="' + esc(e.id) + '"><span class="badge k-ok"><b>' + e.n + '</b></span><span class="row-main"><b>' + esc((f ? f.nombre : e.formatoNom || '') + ' · ' + varTxt(e.variedad)) + '</b><span class="muted">' + esc([fmtCorta(e.fecha), e.lote ? 'lote ' + e.lote : '', e.kg ? fmtN(e.kg) + ' kg' : '', e.bidonNum ? 'bidón nº ' + e.bidonNum : ''].filter(Boolean).join(' · ')) + '</span></span></button>';
+      h += '<button class="row" data-act="open-lote" data-id="' + esc(e.id) + '"><span class="badge k-ok"><b>' + e.n + '</b></span><span class="row-main"><b>' + esc((f ? f.nombre : e.formatoNom || '') + ' · ' + varTxt(e.variedad)) + '</b><span class="muted">' + esc([fmtCorta(e.fecha), e.lote ? 'lote ' + e.lote : '', e.kg ? fmtN(e.kg) + ' kg' : '', e.bidonNum ? 'bidón nº ' + e.bidonNum + (e.bidonLote && e.bidonLote !== e.lote ? ' (lote ' + e.bidonLote + ')' : '') : ''].filter(Boolean).join(' · ')) + '</span></span></button>';
     });
-    return '<div class="stack">' + cabEnv(l.length + ' ' + plural(l.length, 'lote', 'lotes') + ' de envasado') +
+    return '<div class="stack">' + cabEnv('Envasado y ventas') +
       '<div class="actions"><button class="btn primary" data-act="new-lote">🫙 Envasar</button></div>' +
-      (S.fmt.length ? '' : sinFormatos()) +
-      '<dl class="facts-row c2"><div><dt>Tarros envasados en ' + y + '</dt><dd>' + delAnio.reduce((a, e) => a + (Number(e.n) || 0), 0) + '</dd></div><div><dt>Kilos envasados en ' + y + '</dt><dd>' + fmtN(Math.round(delAnio.reduce((a, e) => a + (Number(e.kg) || 0), 0) * 10) / 10) + ' <small>kg</small></dd></div></dl>' +
-      (l.length ? '<div class="list">' + h + '</div>' : '<p class="hint">Aquí aparecerá cada envasado: qué formato, qué miel, cuántos tarros, el lote y de qué bidón salió.</p>') + '</div>';
+      (S.fmt.length ? '' : sinFormatos()) + chips +
+      '<dl class="facts-row"><div><dt>Miel envasada</dt><dd>' + kgT(kgM) + '</dd></div><div><dt>Polen envasado</dt><dd>' + kgT(kgP) + '</dd></div><div><dt>Tarros llenados</dt><dd>' + nT + '</dd></div></dl>' +
+      estBloque('Kilos envasados por tipo ' + perTxt, porTipo, kgT) +
+      estBloque('Tarros envasados por formato ' + perTxt, porFmtEnv, (v) => v + ' <small>tarros</small>') +
+      '<section class="sect"><div class="catline"><h3>Ventas ' + perTxt + '</h3></div><dl class="facts-row"><div><dt>Pedidos servidos</dt><dd>' + nPed + '</dd></div><div><dt>Kilos vendidos</dt><dd>' + kgT(kgV) + '</dd></div><div><dt>Facturado</dt><dd>' + (eurV > 0 ? fmtN(Math.round(eurV)) + ' <small>€</small>' : '—') + '</dd></div></dl>' +
+      (lv.length ? '' : '<p class="hint">Aquí saldrán los formatos y mieles que más vendéis, por canal, por cliente y por mes, a partir de los pedidos enviados o entregados.</p>') + '</section>' +
+      estBloque('Formatos más vendidos', masVend, (v) => v + ' <small>tarros</small>') +
+      estBloque('Ventas por tipo de miel y polen ' + perTxt, mielVend, kgT) +
+      estBloque('Ventas por canal', porCanal, (v) => v + ' <small>tarros</small>') +
+      estBloque('Mejores clientes', porCli, (v) => v + ' <small>tarros</small>') +
+      (informe ? '<section class="sect"><div class="catline"><h3>' + (per === 'todo' ? 'Informe anual de ventas' : 'Informe mensual de ventas ' + per) + '</h3></div>' + informe + '<p class="hint">Sale de los pedidos enviados o entregados. También está en el Excel, hoja «Ventas por mes y tipo».</p></section>' : '') +
+      '<section class="sect"><div class="catline"><h3>Trazabilidad</h3></div><p class="hint">Cada bidón lleva su nº de lote. Al envasar, el lote del bidón pasa a los tarros, así sabes qué lotes se han envasado, cuáles están empezados y cuáles quedan llenos en el almacén.</p></section>' + traz +
+      '<section class="sect"><div class="catline"><h3>Lotes de envasado ' + perTxt + '</h3><span class="muted">' + ev.length + '</span></div>' + (h ? '<div class="list">' + h + '</div>' : '<p class="hint">Aquí aparecerá cada envasado: qué formato, qué miel, cuántos tarros, el lote y de qué bidón salió.</p>') + '</section></div>';
   }
   /* --- formatos --- */
   function viewFormatos() {
-    const l = S.fmt.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    const l = S.fmt.slice().sort(ordFmt);
     return '<div class="stack">' + cabEnv(l.length + ' ' + plural(l.length, 'formato', 'formatos')) +
       '<div class="actions"><button class="btn primary" data-act="new-fmt">+ Nuevo formato</button>' + (l.length ? '' : '<button class="btn" data-act="fmt-base">Crear formatos base</button>') + '</div>' +
       (l.length ? '<div class="list">' + l.map((f) => '<button class="row" data-act="edit-fmt" data-id="' + esc(f.id) + '"><span class="row-main"><b>' + esc(f.nombre) + '</b><span class="muted">' + esc([prodEnv(f.prod)[1], f.gramos ? fmtN(f.gramos) + ' g' : '', (f.receta || []).length ? (f.receta || []).map((m) => { const x = S.alm.find((y) => y.id === m.id); return x ? (m.q !== 1 ? m.q + ' × ' : '') + x.nombre : null; }).filter(Boolean).join(', ') : 'sin material asignado'].filter(Boolean).join(' · ')) + '</span></span>' + (Number(f.pvp) > 0 ? '<span class="money">' + eurP(f.pvp) + '</span>' : '') + '</button>').join('') + '</div>' : sinFormatos()) +
@@ -2237,17 +2337,41 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const ok = await run(() => S.store.set(FMT, id || S.store.newId(), doc), id ? 'Formato guardado' : 'Formato creado');
     if (ok) closeSheet();
   }
-  async function crearFormatosBase() {
-    const busca = (re) => { const x = S.alm.find((y) => y.sec === 'envasadora' && re.test(y.nombre)); return x ? x.id : null; };
-    const comunes = [busca(/^etiquetas? frontal|^etiquetas?$/i), busca(/contraetiqueta/i), busca(/precinto/i)].filter(Boolean);
-    const base = [['Miel 250 g', 'miel', 250, /tarro.*250/i, /tapa/i], ['Miel 500 g', 'miel', 500, /tarro.*500/i, /tapa/i], ['Miel 1 kg', 'miel', 1000, /tarro.*1 ?kg/i, /tapa/i], ['Polen seco 250 g', 'polen', 250, /bote.*polen|polen.*bote/i, null]];
-    await run(async () => {
-      for (const b of base) {
-        if (S.fmt.some((f) => keyN(f.nombre) === keyN(b[0]))) continue;
-        const r = [busca(b[3]), b[4] ? busca(b[4]) : null].filter(Boolean).concat(b[1] === 'miel' ? comunes : []).map((id) => ({ id, q: 1 }));
-        await S.store.set(FMT, S.store.newId(), { nombre: b[0], prod: b[1], gramos: b[2], pvp: null, receta: r, ts: Date.now() });
+  const FMT_BASE = TAM_MIEL.slice().reverse().map((t) => ['Miel ' + t[0], 'miel', t[1], ['Tarro ' + t[0], 'Tapa ' + t[0], precDe(t[0]), 'Etiqueta ' + t[0]]])
+    .concat([['Polen seco 20 g', 'polen', 20, ['Bote polen 20 g']], ['Polen seco 125 g', 'polen', 125, ['Bote polen 125 g']], ['Polen seco 250 g', 'polen', 250, ['Bote polen 250 g']]]);
+  const slugB = (t) => keyN(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const almEnv = (nom) => S.alm.find((y) => secAlm(y) === 'envasadora' && keyN(y.nombre) === keyN(nom));
+  const recetaBase = (b) => b[3].map((n) => almEnv(n)).filter(Boolean).map((x) => ({ id: x.id, q: 1 }));
+  /* Crea los formatos base que falten (con id fijo, para que dos personas a la vez no los dupliquen). */
+  async function ponerFormatosBase(lista, rehacer) {
+    for (const b of lista) {
+      const ya = S.fmt.find((f) => keyN(f.nombre) === keyN(b[0]));
+      if (ya) { if (rehacer) { const r = recetaBase(b); if (r.length) await S.store.update(FMT, ya.id, { receta: r }); } continue; }
+      await S.store.set(FMT, 'fb_' + slugB(b[0]), { nombre: b[0], prod: b[1], gramos: b[2], pvp: null, receta: recetaBase(b), ts: Date.now() });
+    }
+  }
+  async function crearFormatosBase() { await run(() => ponerFormatosBase(FMT_BASE), 'Formatos base creados'); }
+  /* Una sola vez por cuenta: pone el material por tamaños (tarro, tapa, precinto y etiqueta de cada formato),
+     quita los artículos genéricos antiguos que estén sin cantidad y rehace las recetas de los formatos base. */
+  let ordenHecho = false;
+  async function ordenarEnvasado() {
+    if (ordenHecho || (S.cfg && S.cfg.envOrden2) || !S.loaded.alm || !S.loaded.fmt || !S.store.attached()) return;
+    const empezado = S.fmt.length || S.alm.some((y) => secAlm(y) === 'envasadora');
+    if (!empezado) return;
+    ordenHecho = true;
+    try {
+      for (const b of BASE_ENV) {
+        if (almEnv(b[0])) continue;
+        const id = 'mb_' + slugB(b[0]), d = { nombre: b[0], categoria: b[1], unidad: b[2], detalle: '', cantidad: null, sec: 'envasadora', ts: Date.now() };
+        await S.store.set(ALM, id, d); if (!S.alm.some((y) => y.id === id)) S.alm.push(Object.assign({ id }, d));
       }
-    }, 'Formatos base creados');
+      for (const n of VIEJOS_ENV) {
+        const x = almEnv(n); if (!x || !sinContar(x) && Number(x.cantidad) > 0) continue;
+        await S.store.del(ALM, x.id); S.alm = S.alm.filter((y) => y.id !== x.id);
+      }
+      await ponerFormatosBase(FMT_BASE, true);
+      await S.store.set(CFG, 'main', cfgDoc({ envOrden2: true }));
+    } catch (e) { ordenHecho = false; }
   }
   /* --- pedidos --- */
   function viewPedidos() {
@@ -2950,6 +3074,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (a === 'add') { const sc = secOf(S.view); openSheet(sc === 'almacen' ? { type: 'alm' } : sc === 'finanzas' ? { type: S.finTab === 'ingresos' ? 'ing' : 'gas' } : { type: 'reg' }); }
     else if (a === 'filtro-alm') { S.filtroAlm = d.v; render(); }
     else if (a === 'alm-tab') { S.almTab = d.v === 'productos' ? 'productos' : 'material'; render(); window.scrollTo(0, 0); }
+    else if (a === 'env-anio') { S.envAnio = d.v; render(); }
     else if (a === 'filtro-prd-e') { S.filtroPrdE = d.v; S.filtroPrdV = 'todas'; render(); }
     else if (a === 'filtro-prd-v') { S.filtroPrdV = d.v; render(); }
     else if (a === 'prd-tab') { S.prdTab = d.v === 'polen' ? 'polen' : 'miel'; S.filtroPrdV = 'todas'; render(); }
@@ -3131,10 +3256,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     } else if (t.id === 'f-sen') { importarSensores(t.files && t.files[0]); t.value = '';
     } else if (t.id === 'l-fmt') {
       const f = findFmt(t.value), sb = document.getElementById('l-bid');
-      if (sb) sb.innerHTML = '<option value="">Ninguno / no restar kilos</option>' + bidonesPara(f).map((b) => '<option value="' + esc(b.id) + '">Nº ' + esc(b.num) + ' · ' + esc(varPrd(b)) + ' · ' + fmtN(b.kg || 0) + ' kg</option>').join('');
+      if (sb) sb.innerHTML = opcBid(f);
       loteResumen();
     } else if (t.id === 'l-bid') {
-      const b = S.prd.find((y) => y.id === t.value), vi = document.getElementById('l-var'); if (b && vi && !vi.value) vi.value = varPrd(b);
+      const b = S.prd.find((y) => y.id === t.value), vi = document.getElementById('l-var'), li = document.getElementById('l-lote'); if (b && vi && !vi.value) vi.value = catDe(varPrd(b)) ? catDe(varPrd(b))[0] : varPrd(b);
+      if (li && !li.dataset.tocado) li.value = b ? loteDe(b) : li.dataset.def;
       loteResumen();
     } else if (t.classList && t.classList.contains('pl-fmt')) {
       const f = findFmt(t.value), r = t.closest('.pl'), pr = r && r.querySelector('.pl-pr'); if (f && pr && f.pvp != null) pr.value = f.pvp; pedTotalVivo();
@@ -3170,6 +3296,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const t = e.target;
     if (t && t.id === 'ia-in') S.ia.draft = t.value;
     if (t && (t.id === 'l-n' || t.id === 'l-var')) loteResumen();
+    if (t && t.id === 'l-lote') t.dataset.tocado = '1';
     if (t && t.closest && t.closest('#p-lineas')) { const f0 = t.closest('form'); if (f0) delete f0.dataset.forzar; pedTotalVivo(); }
     if (t && (t.id === 'i-cant' || t.id === 'i-precio')) { const o = document.getElementById('i-total'); if (o) o.textContent = eurP((Number(val('i-cant')) || 0) * (Number(val('i-precio')) || 0)); }
   });
