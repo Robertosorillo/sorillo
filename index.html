@@ -308,7 +308,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
 <script>
 (function () {
   'use strict';
-  const COL = 'asentamientos', REG = 'registros', CFG = 'config', ALM = 'almacen', GAS = 'gastos', ING = 'ingresos', SUB = 'subvenciones', TMP = 'tiempo', PRD = 'productos', PAT = 'patrimonio', FMT = 'formatos', TAR = 'tarros', ENV = 'envasados', PED = 'pedidos';
+  const COL = 'asentamientos', REG = 'registros', CFG = 'config', ALM = 'almacen', GAS = 'gastos', ING = 'ingresos', SUB = 'subvenciones', TMP = 'tiempo', PRD = 'productos', PAT = 'patrimonio', FMT = 'formatos', TAR = 'tarros', ENV = 'envasados', PED = 'pedidos', SEN = 'sensores', LEC = 'lecturas';
   const CAT_ALM = [['alimento', 'Alimento', 'kg'], ['colmenas', 'Colmenas vacías', 'ud'], ['cajas', 'Núcleos', 'ud'], ['laminas', 'Láminas', 'cajas'], ['cazapolen', 'Cazapolen', 'ud'], ['alimentadores', 'Alimentadores', 'ud'], ['tratamientos', 'Tratamientos', 'ud'], ['envases', 'Envases y etiquetas', 'ud'], ['otro', 'Otro material', 'ud'], ['aislantes', 'Aislantes', 'ud']];
   const CAT_ENV = [['tarros', 'Tarros y botes', 'ud'], ['tapas', 'Tapas', 'ud'], ['etiquetas', 'Etiquetas', 'ud'], ['embalaje', 'Cajas y embalaje', 'ud'], ['precintos', 'Precintos y sellos', 'ud'], ['eotro', 'Otro material de envasado', 'ud']];
   const BASE_ENV = [['Tarro 250 g', 'tarros', 'ud'], ['Tarro 500 g', 'tarros', 'ud'], ['Tarro 1 kg', 'tarros', 'ud'], ['Bote polen 250 g', 'tarros', 'ud'], ['Tapas', 'tapas', 'ud'], ['Etiquetas frontales', 'etiquetas', 'ud'], ['Contraetiquetas', 'etiquetas', 'ud'], ['Precintos', 'precintos', 'ud'], ['Cajas de cartón', 'embalaje', 'ud']];
@@ -330,7 +330,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const LOGO = 'data:image/png;base64,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'; /* logotipo de Sorillo (abeja y nombre) */
   const KEY_DATOS = 'sorillo-datos-v1', KEY_COLA = 'sorillo-cola-v1', KEY_INSTALAR = 'sorillo-instalar-oculto';
 
-  const S = { cfg: { total: 567 }, col: [], reg: [], alm: [], gas: [], ing: [], sub: [], tmp: [], prd: [], pat: [], fmt: [], tar: [], env: [], ped: [], almTab: 'material', filtroPrdE: 'almacen', filtroPrdV: 'todas', prdTab: 'miel', finTab: 'gastos', view: 'resumen', cuad: 'resumen', filtro: 'todos', filtroAs: 'todos', filtroAlm: 'todos', periodo: 'anio', sheet: null, store: null, loaded: { col: false, reg: false, alm: false, gas: false, ing: false, sub: false, tmp: false, prd: false, pat: false, fmt: false, tar: false, env: false, ped: false } };
+  const S = { cfg: { total: 567 }, col: [], reg: [], alm: [], gas: [], ing: [], sub: [], tmp: [], prd: [], pat: [], fmt: [], tar: [], env: [], ped: [], sen: [], lec: [], almTab: 'material', filtroPrdE: 'almacen', filtroPrdV: 'todas', prdTab: 'miel', finTab: 'gastos', view: 'resumen', cuad: 'resumen', filtro: 'todos', filtroAs: 'todos', filtroAlm: 'todos', periodo: 'anio', sheet: null, store: null, loaded: { col: false, reg: false, alm: false, gas: false, ing: false, sub: false, tmp: false, prd: false, pat: false, fmt: false, tar: false, env: false, ped: false, sen: false, lec: false } };
   const $ = (s) => document.querySelector(s);
   const KEY_MODO = 'sorillo-modo';
   try { S.modo = localStorage.getItem(KEY_MODO) === 'env' ? 'env' : 'campo'; } catch (e) { S.modo = 'campo'; }
@@ -446,7 +446,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const LOCAL = !(window.claude && window.claude.use);
   const FB = !!window.SORILLO_FB;
   function makeStore() {
-    let data = { asentamientos: {}, registros: {}, config: {}, almacen: {}, gastos: {}, ingresos: {}, subvenciones: {}, tiempo: {}, productos: {}, patrimonio: {}, formatos: {}, tarros: {}, envasados: {}, pedidos: {} };
+    let data = { asentamientos: {}, registros: {}, config: {}, almacen: {}, gastos: {}, ingresos: {}, subvenciones: {}, tiempo: {}, productos: {}, patrimonio: {}, formatos: {}, tarros: {}, envasados: {}, pedidos: {}, sensores: {}, lecturas: {} };
     let queue = [];
     let hasCache = false, db = null, flushing = false, retry = null;
     const live = {}, subs = {};
@@ -468,7 +468,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       return Object.keys(m).map((id) => Object.assign({ id }, m[id]));
     };
     const emit = (c) => (subs[c] || []).forEach((f) => f(view(c)));
-    const COLS = [COL, REG, CFG, ALM, GAS, ING, SUB, TMP, PRD, PAT, FMT, TAR, ENV, PED];
+    const COLS = [COL, REG, CFG, ALM, GAS, ING, SUB, TMP, PRD, PAT, FMT, TAR, ENV, PED, SEN, LEC];
     const st = () => ({ pend: queue.length, live: !!db && COLS.every((c) => live[c]), flushing });
     const api = {
       onStatus: null,
@@ -948,7 +948,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       L.push('- ' + nombreNum(c) + ': ' + (Number(c.colmenas) || 0) + ' colmenas; ' + APROV[c.aprov || 'miel'] + (c.floracion ? '; floración ' + c.floracion : '') + (c.altitud ? '; altitud ' + c.altitud + ' m' : '') + (c.lugar ? '; ' + c.lugar : '') +
         '; coordenadas ' + p.q.lat.toFixed(4) + ',' + p.q.lon.toFixed(4) +
         '; última inspección: ' + (i ? i.fecha + ' (' + textoReg(i) + ')' : 'ninguna anotada') +
-        '; último tratamiento: ' + (t ? t.fecha + ' (' + textoReg(t) + ')' : 'ninguno anotado') + (c.notas ? '; notas: ' + c.notas : ''));
+        '; último tratamiento: ' + (t ? t.fecha + ' (' + textoReg(t) + ')' : 'ninguno anotado') + (c.notas ? '; notas: ' + c.notas : '') + (senTxt(c) ? '; BÁSCULAS/SENSORES BeeGuard: ' + senTxt(c) : ''));
     });
     L.push('\nDISTANCIAS ESTIMADAS POR CARRETERA (km):');
     const nom = (p) => sinNumero(p.c) ? p.c.nombre : 'Nº ' + p.c.numero;
@@ -972,6 +972,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     '- Tratamientos: seguir la etiqueta del medicamento y anotar el tratamiento y la fecha de retirada.\n' +
     '- Recoger polen: en días secos; el polen se recoge del cazapolen por la tarde y no tras lluvia o con mucha humedad; no dejar el polen al sol ni mojado.\n' +
     '- Traslados: de noche o a primera hora, con las piqueras cerradas.\n' +
+    '- Básculas BeeGuard: si una colmena testigo pierde peso de forma continuada en otoño-invierno, las reservas bajan: prioriza revisar y alimentar ese colmenar. Una bajada brusca de un día puede ser robo, enjambrazón o pillaje: revísalo cuanto antes.\n' +
     'Cómo responder:\n' +
     '- En español de España, claro y práctico, como un compañero apicultor con experiencia. Frases cortas.\n' +
     '- Da un plan por días: para cada día, la ruta en orden (desde el almacén), la hora aproximada de llegada a cada colmenar, la tarea que toca allí y el motivo meteorológico (temperatura, lluvia, viento). Suma los km y el tiempo de cada jornada usando las distancias y la velocidad dadas, más los minutos de trabajo.\n' +
@@ -1227,6 +1228,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const instalada = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
     if (!oculto && !instalada) h += '<div class="notice"><span>Para tenerla en el móvil: abre esta página en el navegador y elige «Añadir a pantalla de inicio».</span><button class="btn" data-act="ocultar-instalar">Entendido</button></div>';
     if (hayEj) h += '<div class="notice"><span>Hay datos de ejemplo para que veas cómo funciona.</span><button class="btn" data-act="borrar-ejemplos">Borrar ejemplos</button></div>';
+    const as = S.loaded.sen && S.loaded.lec ? avisosSen() : [];
+    if (as.length) h = '<div class="notice"><span><b>📡 ' + as.length + ' ' + plural(as.length, 'aviso de BeeGuard', 'avisos de BeeGuard') + ':</b> ' + esc(as.slice(0, 2).map((o) => o.s.nombre + ' — ' + o.I.avisos[0]).join(' · ')) + '</span><button class="btn" data-act="sec" data-sec="asent">Ver</button></div>' + h;
     const al = alertasRenta();
     if (al.length) h = '<div class="notice"><span><b>' + al.length + ' ' + plural(al.length, 'pago de renta', 'pagos de renta') + '</b> por vencer o vencidos: ' + esc(al.slice(0, 2).map((x) => nombreNum(x.c) + ' (' + x.i.t.toLowerCase() + ')').join(', ')) + (al.length > 2 ? '…' : '') + '</span><button class="btn" data-act="sec" data-sec="asent">Ver</button></div>' + h;
     return h ? '<div class="sect">' + h + '</div>' : '';
@@ -1628,7 +1631,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const cuerpo = lista.length
       ? '<div class="list">' + lista.map(fila).join('') + '</div>'
       : '<div class="empty"><p>Todavía no hay asentamientos en ' + esc(zonaNom(z)) + '. Añade el primero o cambia la zona de uno que ya tengas desde su ficha.</p></div>';
-    return '<div class="stack">' + cab(lista) + wxSection() + tabs + alHtml +
+    return '<div class="stack">' + cab(lista) + wxSection() + sensoresSeccion() + tabs + alHtml +
       '<div class="actions"><button class="btn primary" data-act="new-col">Añadir asentamiento</button>' + (sinNum ? '<button class="btn" data-act="numerar">Numerar los que faltan (' + sinNum + ')</button>' : '') + '</div>' +
       (z === 'sin' ? '<p class="hint">Estos asentamientos aún no tienen zona. Elige a cuál pertenece cada uno.</p>' : '') +
       '<dl class="facts-row c2"><div><dt>Renta al año · ' + esc(zonaNom(z)) + '</dt><dd>' + eur(anual) + '</dd></div><div><dt>Renta al mes</dt><dd>' + eur(anual / 12) + '</dd></div></dl>' +
@@ -1728,6 +1731,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (s.type === 'lote') body = sheetLote(s);
     else if (s.type === 'fmt') body = sheetFmt(s);
     else if (s.type === 'ped') body = sheetPed(s);
+    else if (s.type === 'sen-nuevos') body = sheetSenNuevos();
+    else if (s.type === 'sen') body = sheetSen(s);
     else if (s.type === 'valcol') body = sheetValCol();
     if (!body) { closeSheet(); return; }
     sheetEl.innerHTML = '<div class="scrim" data-act="close"></div><section class="panel" role="dialog" aria-modal="true" aria-labelledby="sh-title" tabindex="-1">' + body + '</section>';
@@ -1755,6 +1760,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       (c.coords ? '<div class="wide"><dt>Coordenadas</dt><dd>' + esc(c.coords) + ' · <a href="https://www.google.com/maps?q=' + encodeURIComponent(parseCoords(c.coords) ? parseCoords(c.coords).lat.toFixed(6) + ',' + parseCoords(c.coords).lon.toFixed(6) : c.coords) + '" target="_blank" rel="noopener">Abrir en el mapa</a></dd></div>' : '') +
       (rentaInfo(c) ? (function () { const i = rentaInfo(c); return '<div class="wide"><dt>Renta</dt><dd>' + i.txt + ' · ' + FRECS[i.f][1].toLowerCase() + ' (≈ ' + (i.miel ? fmtN(i.anual) + ' kg' : eur(i.anual)) + ' al año)' + (c.propietario ? ' · ' + esc(c.propietario) : '') + '</dd></div><div class="wide"><dt>Próximo pago</dt><dd>' + (c.vence ? esc(fmtCorta(c.vence)) + ' ' + pill(i) : 'Sin fecha anotada') + (c.ultimoPago ? ' <span class="muted">· último pago ' + esc(fmtCorta(c.ultimoPago)) + '</span>' : '') + '</dd></div>'; })() : '') +
       (c.notas ? '<div class="wide"><dt>Notas</dt><dd>' + esc(c.notas) + '</dd></div>' : '') + '</dl>' +
+      (S.sen.some((x) => x.asentamientoId === id) ? '<h3>📡 Básculas y sensores</h3><div class="list">' + S.sen.filter((x) => x.asentamientoId === id).map((x) => filaSen(x, true)).join('') + '</div>' : '') +
       '<div class="actions"><button class="btn primary" data-act="new-reg" data-col="' + esc(id) + '" data-tipo="inspeccion">Registrar inspección</button><button class="btn" data-act="new-reg" data-col="' + esc(id) + '" data-tipo="traslado">Trasladar</button><button class="btn" data-act="edit-col" data-id="' + esc(id) + '">Editar</button>' + (rentaInfo(c) ? '<button class="btn" data-act="pagar" data-id="' + esc(id) + '">Anotar pago de renta</button>' : '') + '</div>' +
       '<h3>Historial</h3>' + (hist.length ? '<div class="list">' + hist.map(filaReg).join('') + '</div>' : '<p class="hint">Aún no hay registros de este asentamiento.</p>') +
       '<div id="del-zone"><button class="btn plain" data-act="ask-del-col">Eliminar asentamiento</button></div>';
@@ -2319,6 +2325,166 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (ok) closeSheet();
   }
 
+  /* ---------- SENSORES (BeeGuard): básculas, temperatura y humedad importadas desde CSV ---------- */
+  const TIPOS_SEN = [['peso', 'Báscula (peso)', 'kg'], ['temp', 'Temperatura', '°C'], ['hum', 'Humedad', '%'], ['otro', 'Otro dato', '']];
+  const tipoSen = (k) => TIPOS_SEN.find((t) => t[0] === k) || TIPOS_SEN[3];
+  const senId = (col) => 's_' + slugV(col);
+  const tipoDeCol = (c) => /peso|weight|poids|kg|bascula|balance/i.test(c) ? 'peso' : /temp/i.test(c) ? 'temp' : /hum/i.test(c) ? 'hum' : 'otro';
+  const hLocal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours());
+  /* todas las lecturas horarias de un sensor, ordenadas: [[clave 'AAAA-MM-DDTHH', valor], ...] */
+  function serie(sid) {
+    const m = {};
+    S.lec.filter((x) => x.sensorId === sid).forEach((x) => Object.assign(m, x.h || {}));
+    return Object.keys(m).sort().map((k) => [k, Number(m[k])]);
+  }
+  /* resumen diario: peso = media de 0 a 5 h (colmena en reposo); temperatura = mínima y máxima; humedad = media */
+  function diario(sen) {
+    const d = {};
+    serie(sen.id).forEach(([k, v]) => { const f = k.slice(0, 10), h = Number(k.slice(11, 13)); const o = d[f] = d[f] || { all: [], noche: [] }; o.all.push(v); if (h <= 5) o.noche.push(v); });
+    const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    return Object.keys(d).sort().map((f) => { const o = d[f]; return { f, v: sen.tipo === 'peso' ? (o.noche.length ? avg(o.noche) : avg(o.all)) : avg(o.all), min: Math.min.apply(null, o.all), max: Math.max.apply(null, o.all) }; });
+  }
+  function infoSen(sen) {
+    const s = serie(sen.id), ult = s[s.length - 1], dd = diario(sen);
+    const horas = ult ? (Date.now() - new Date(ult[0] + ':00:00').getTime()) / 3600e3 : null;
+    const r = { ult, horas, dd, avisos: [] };
+    if (ult && horas > 36) r.avisos.push('Sin datos desde el ' + fmtCorta(ult[0].slice(0, 10)) + ' a las ' + Number(ult[0].slice(11, 13)) + ' h: revisa la batería o el transmisor');
+    if (sen.tipo === 'peso' && dd.length >= 2) {
+      const a = dd[dd.length - 2], b = dd[dd.length - 1];
+      if (b.v - a.v <= -1.5) r.avisos.push('Bajada brusca de peso (' + fmtN(Math.round((b.v - a.v) * 10) / 10) + ' kg en un día): posible robo, enjambrazón o pillaje');
+      const hace = (n) => { const ref = dd[Math.max(0, dd.length - 1 - n)]; return Math.round((b.v - ref.v) * 100) / 100; };
+      r.d1 = hace(1); r.d7 = hace(7); r.d30 = hace(30);
+    }
+    return r;
+  }
+  const signo = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
+  function grafica(sen, dias) {
+    const dd = diario(sen).slice(-(dias || 30)); if (dd.length < 2) return '<p class="hint">Aún no hay datos suficientes para la gráfica.</p>';
+    const W = 320, H = 120, p = 26, peso = sen.tipo === 'peso';
+    const vals = peso ? dd.map((o) => o.v) : dd.map((o) => o.min).concat(dd.map((o) => o.max));
+    let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals); if (hi - lo < (peso ? 1 : 4)) { const m = (hi + lo) / 2; lo = m - (peso ? 0.5 : 2); hi = m + (peso ? 0.5 : 2); }
+    const x = (i) => p + i * (W - p - 6) / (dd.length - 1), y = (v) => 8 + (hi - v) * (H - 28) / (hi - lo);
+    const linea = (k, col) => '<polyline fill="none" stroke="' + col + '" stroke-width="2.2" stroke-linejoin="round" points="' + dd.map((o, i) => x(i).toFixed(1) + ',' + y(o[k]).toFixed(1)).join(' ') + '"/>';
+    const et = (v) => '<text x="2" y="' + (y(v) + 4).toFixed(1) + '" font-size="9" fill="var(--ink-2)">' + fmtN(Math.round(v * 10) / 10) + '</text>';
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;background:var(--surface-2);border-radius:8px" role="img" aria-label="Gráfica de ' + esc(sen.nombre) + '">' +
+      '<line x1="' + p + '" x2="' + (W - 6) + '" y1="' + y(hi) + '" y2="' + y(hi) + '" stroke="var(--line)"/><line x1="' + p + '" x2="' + (W - 6) + '" y1="' + y(lo) + '" y2="' + y(lo) + '" stroke="var(--line)"/>' + et(hi) + et(lo) +
+      (peso ? linea('v', 'var(--accent)') : linea('max', 'var(--late)') + linea('min', 'var(--ok)')) +
+      '<text x="' + p + '" y="' + (H - 4) + '" font-size="9" fill="var(--ink-2)">' + esc(fmtCorta(dd[0].f)) + '</text><text x="' + (W - 6) + '" y="' + (H - 4) + '" font-size="9" text-anchor="end" fill="var(--ink-2)">' + esc(fmtCorta(dd[dd.length - 1].f)) + '</text></svg>' +
+      '<p class="hint">' + (peso ? 'Peso de cada noche (media de 0 a 5 h, con las abejas dentro)' : sen.tipo === 'temp' ? 'Máxima (rojo) y mínima (verde) de cada día' : 'Media de cada día') + ' · últimos ' + dd.length + ' días</p>';
+  }
+  function filaSen(sen, conGrafica) {
+    const I = infoSen(sen), c = findCol(sen.asentamientoId), T = tipoSen(sen.tipo);
+    const val = I.ult ? fmtN(Math.round(I.ult[1] * 100) / 100) + ' ' + T[2] : '—';
+    const k = I.avisos.length ? 'late' : 'ok';
+    return '<div class="row" style="flex-direction:column;align-items:stretch"><button class="row-main" data-act="edit-sen" data-id="' + esc(sen.id) + '" style="background:none;border:0;padding:0;text-align:left"><b>' + esc(sen.nombre) + ' <span class="muted">· ' + esc(T[1]) + '</span></b>' +
+      '<span class="muted">' + esc(c ? nombreNum(c) : 'Sin asentamiento asignado') + '</span>' +
+      '<span><b>' + esc(val) + '</b>' + (I.ult ? ' <span class="muted">· ' + esc(fmtCorta(I.ult[0].slice(0, 10)) + ' ' + Number(I.ult[0].slice(11, 13)) + ' h') + '</span>' : '') + '</span>' +
+      (sen.tipo === 'peso' && I.d7 != null ? '<span class="muted">Último día ' + signo(I.d1) + ' kg · 7 días ' + signo(I.d7) + ' kg · 30 días ' + signo(I.d30) + ' kg</span>' : '') +
+      (I.avisos.length ? I.avisos.map((a) => '<span>' + pill({ k: 'late', t: a }) + '</span>').join('') : '<span>' + pill({ k, t: 'Enviando datos' }) + '</span>') + '</button>' +
+      (conGrafica ? grafica(sen, 30) : '') + '</div>';
+  }
+  const avisosSen = () => S.sen.map((s) => ({ s, I: infoSen(s) })).filter((o) => o.I.avisos.length);
+  function sensoresSeccion() {
+    const l = S.sen.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    return '<section class="sect" id="sen-sec"><div class="sect-head"><h3>📡 Básculas y sensores (BeeGuard)</h3></div>' +
+      (l.length ? '<div class="list">' + l.map((s) => filaSen(s, false)).join('') + '</div>' : '<p class="hint">Importa el archivo CSV que exportas desde BeeGuard para ver aquí el peso de tus colmenas testigo, la temperatura y la humedad, con avisos si el peso cae de golpe o un sensor deja de enviar datos.</p>') +
+      '<div class="actions"><label class="btn primary" style="cursor:pointer;text-align:center">⬆ Importar datos de BeeGuard<input type="file" id="f-sen" accept=".csv,text/csv,text/plain" hidden></label><a class="btn" style="text-align:center;text-decoration:none" href="https://www.beeguard.fr" target="_blank" rel="noopener">Abrir BeeGuard</a></div>' +
+      (l.length ? '<p class="hint">Toca un sensor para cambiar su nombre o su asentamiento. En la ficha de cada asentamiento verás sus gráficas. Puedes importar el mismo archivo o uno más reciente las veces que quieras: los datos repetidos no se duplican.</p>' : '') + '</section>';
+  }
+  /* lectura del CSV de BeeGuard: fecha en la 1ª columna y un dato por columna */
+  function leerCsvSensores(txt) {
+    txt = String(txt || '').replace(/^﻿/, '');
+    const lineas = txt.split(/\r?\n/).filter((l) => l.trim());
+    if (lineas.length < 2) throw new Error('vacío');
+    const sep = (lineas[0].match(/;/g) || []).length > (lineas[0].match(/,/g) || []).length ? ';' : ',';
+    const cab = lineas[0].split(sep).map((c) => c.trim().replace(/^"|"$/g, ''));
+    const cols = cab.slice(1).map((c, i) => ({ i: i + 1, col: c, id: senId(c), datos: {} }));
+    lineas.slice(1).forEach((l) => {
+      const p = l.split(sep), d = new Date(String(p[0]).trim().replace(/^"|"$/g, '').replace(' ', 'T'));
+      if (isNaN(d)) return;
+      const k = hLocal(d);
+      cols.forEach((c) => { const raw = String(p[c.i] == null ? '' : p[c.i]).trim().replace(/^"|"$/g, ''); if (raw === '') return; const v = Number(sep === ';' ? raw.replace(',', '.') : raw); if (isFinite(v)) c.datos[k] = v; });
+    });
+    cols.forEach((c) => { const vs = Object.values(c.datos); c.tipo = tipoDeCol(c.col); if (c.tipo === 'hum' && vs.length && Math.max.apply(null, vs) <= 1.5) Object.keys(c.datos).forEach((k) => { c.datos[k] = Math.round(c.datos[k] * 1000) / 10; }); });
+    const usar = cols.filter((c) => Object.keys(c.datos).length);
+    if (!usar.length) throw new Error('sin datos');
+    return usar;
+  }
+  async function guardarLecturas(cols) {
+    let nuevas = 0;
+    for (const c of cols) {
+      const porMes = {};
+      Object.keys(c.datos).forEach((k) => { (porMes[k.slice(0, 7)] = porMes[k.slice(0, 7)] || {})[k] = c.datos[k]; });
+      for (const mes of Object.keys(porMes)) {
+        const id = c.id + '_' + mes, old = S.lec.find((x) => x.id === id), h = Object.assign({}, old ? old.h : {});
+        Object.keys(porMes[mes]).forEach((k) => { if (h[k] !== porMes[mes][k]) { if (h[k] == null) nuevas++; h[k] = porMes[mes][k]; } });
+        await S.store.set(LEC, id, { sensorId: c.id, mes, h, ts: Date.now() });
+      }
+    }
+    return nuevas;
+  }
+  function importarSensores(file) {
+    if (!file) return;
+    const rd = new FileReader();
+    rd.onload = async () => {
+      let cols; try { cols = leerCsvSensores(rd.result); } catch (e) { toast('No entiendo ese archivo. Exporta los datos de BeeGuard en CSV.'); return; }
+      const nuevos = cols.filter((c) => !S.sen.some((s) => s.id === c.id));
+      if (nuevos.length) { S.senPend = cols; openSheet({ type: 'sen-nuevos' }); return; }
+      const n = await guardarLecturas(cols).catch(() => null);
+      toast(n == null ? 'No se pudieron guardar los datos' : n ? n + ' lecturas nuevas importadas' : 'Los datos ya estaban importados');
+    };
+    rd.readAsText(file);
+  }
+  function opcAsent(sel) { return '<option value="">Sin asignar</option>' + S.col.slice().sort((a, b) => (sinNumero(a) ? 1e9 : Number(a.numero)) - (sinNumero(b) ? 1e9 : Number(b.numero))).map((c) => '<option value="' + esc(c.id) + '"' + (c.id === sel ? ' selected' : '') + '>' + esc(nombreNum(c)) + '</option>').join(''); }
+  function sheetSenNuevos() {
+    const cols = S.senPend || []; if (!cols.length) return '';
+    return head('BeeGuard', 'Sensores nuevos') + '<form data-form="sen-nuevos" novalidate><p class="hint">He encontrado estos datos en el archivo. Dime qué es cada uno y en qué asentamiento está. Solo hay que hacerlo la primera vez.</p>' +
+      cols.map((c, i) => { const s = S.sen.find((y) => y.id === c.id), n = Object.keys(c.datos).length;
+        return '<div class="item" style="flex-direction:column;align-items:stretch;padding:10px;gap:8px"><b>Columna «' + esc(c.col) + '» <span class="muted">· ' + n + ' lecturas' + (s ? ' · ya conocida' : '') + '</span></b>' +
+          '<div class="grid2">' + fld('sn-n' + i, 'Nombre', inp('sn-n' + i, 'text', s ? s.nombre : c.col.replace(/_/g, ' '), 'autocomplete="off"')) + fld('sn-t' + i, 'Qué mide', '<select id="sn-t' + i + '">' + TIPOS_SEN.map((t) => '<option value="' + t[0] + '"' + (t[0] === (s ? s.tipo : c.tipo) ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select>') + '</div>' +
+          fld('sn-a' + i, 'Asentamiento', '<select id="sn-a' + i + '">' + opcAsent(s ? s.asentamientoId : '') + '</select>') + '</div>'; }).join('') +
+      '<p class="err" id="sn-err" hidden></p><button class="btn primary" type="submit">Guardar e importar</button></form>';
+  }
+  async function guardarSenNuevos() {
+    const cols = S.senPend || [];
+    let n = 0;
+    const ok = await run(async () => {
+      for (let i = 0; i < cols.length; i++) {
+        const c = cols[i], old = S.sen.find((y) => y.id === c.id);
+        await S.store.set(SEN, c.id, { col: c.col, nombre: val('sn-n' + i) || c.col, tipo: val('sn-t' + i) || c.tipo, asentamientoId: val('sn-a' + i), ts: old ? (old.ts || Date.now()) : Date.now() });
+      }
+      n = await guardarLecturas(cols);
+    });
+    if (ok) { S.senPend = null; closeSheet(); toast(n + ' lecturas importadas'); }
+  }
+  function sheetSen(s) {
+    const x = S.sen.find((y) => y.id === s.id); if (!x) return '';
+    const I = infoSen(x);
+    return head('Sensor BeeGuard', x.nombre) + grafica(x, 60) +
+      (I.avisos.length ? I.avisos.map((a) => '<p>' + pill({ k: 'late', t: a }) + '</p>').join('') : '') +
+      '<form data-form="sen" data-id="' + esc(x.id) + '" novalidate>' +
+      fld('se-n', 'Nombre', inp('se-n', 'text', x.nombre, 'autocomplete="off"')) +
+      '<div class="grid2">' + fld('se-t', 'Qué mide', '<select id="se-t">' + TIPOS_SEN.map((t) => '<option value="' + t[0] + '"' + (t[0] === x.tipo ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select>') + fld('se-a', 'Asentamiento', '<select id="se-a">' + opcAsent(x.asentamientoId) + '</select>') + '</div>' +
+      '<p class="hint">Columna en el archivo de BeeGuard: «' + esc(x.col) + '» · ' + serie(x.id).length + ' lecturas guardadas.</p>' +
+      '<p class="err" id="se-err" hidden></p><button class="btn primary" type="submit">Guardar</button></form>' +
+      '<div id="del-zone"><button class="btn plain" data-act="ask-del-sen" data-id="' + esc(x.id) + '">Eliminar sensor y sus datos</button></div>';
+  }
+  async function guardarSen(f) {
+    const x = S.sen.find((y) => y.id === f.dataset.id); if (!x) return;
+    const d = Object.assign({}, x, { nombre: val('se-n') || x.col, tipo: val('se-t') || 'otro', asentamientoId: val('se-a') }); delete d.id;
+    const ok = await run(() => S.store.set(SEN, x.id, d), 'Sensor guardado');
+    if (ok) closeSheet();
+  }
+  async function borrarSen(id) {
+    const ok = await run(async () => { for (const l of S.lec.filter((y) => y.sensorId === id)) await S.store.del(LEC, l.id); await S.store.del(SEN, id); }, 'Sensor eliminado');
+    if (ok) closeSheet();
+  }
+  /* texto para el asistente IA */
+  function senTxt(c) {
+    return S.sen.filter((s) => s.asentamientoId === c.id).map((s) => { const I = infoSen(s), T = tipoSen(s.tipo);
+      return T[1] + ' «' + s.nombre + '»: ' + (I.ult ? fmtN(Math.round(I.ult[1] * 100) / 100) + ' ' + T[2] + ' (' + I.ult[0] + ' h)' : 'sin datos') + (s.tipo === 'peso' && I.d7 != null ? ', variación 7 días ' + signo(I.d7) + ' kg, 30 días ' + signo(I.d30) + ' kg' : '') + (I.avisos.length ? ' [AVISO: ' + I.avisos.join('; ') + ']' : ''); }).join('; ');
+  }
+
   /* ---------- Finanzas: ingresos (ventas) ---------- */
   const PROD_ING = [['miel', 'Miel', 'kg'], ['polen', 'Polen seco', 'kg'], ['polenfresco', 'Polen fresco', 'kg'], ['colmenas', 'Colmenas', 'ud'], ['nucleos', 'Núcleos', 'ud'], ['enjambres', 'Enjambres', 'ud'], ['otro', 'Otro producto', 'ud']];
   const prodIng = (k) => PROD_ING.find((x) => x[0] === k) || PROD_ING[PROD_ING.length - 1];
@@ -2691,6 +2857,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (a === 'modo') { if (S.modo !== d.v) { ponerModo(d.v); S.patOk = false; render(); window.scrollTo(0, 0); } }
     else if (a === 'filtro-ped') { S.filtroPed = d.v; render(); }
     else if (a === 'new-lote') openSheet({ type: 'lote' });
+    else if (a === 'edit-sen') openSheet({ type: 'sen', id: d.id });
+    else if (a === 'ask-del-sen') confirmZone('Se elimina el sensor y todas sus lecturas importadas. En BeeGuard no se borra nada.', 'del-sen', d.id);
+    else if (a === 'del-sen') borrarSen(d.id);
     else if (a === 'open-lote') openSheet({ type: 'lote', id: d.id });
     else if (a === 'ask-del-lote') { const z = document.getElementById('del-zone'); if (z) z.innerHTML = '<p class="hint" style="margin-bottom:10px">Se restan sus tarros de las existencias.</p><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="lote-dev" checked>Devolver también el material al almacén y los kilos al bidón</label><div class="actions"><button class="btn danger" data-act="del-lote" data-id="' + esc(d.id) + '">Sí, eliminar</button><button class="btn" data-act="cancel-del">Cancelar</button></div>'; }
     else if (a === 'del-lote') borrarLote(d.id, !!(document.getElementById('lote-dev') || {}).checked);
@@ -2781,7 +2950,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target, k = f.dataset.form;
-    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'valcol') guardarValCol();
+    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'sen-nuevos') guardarSenNuevos(); else if (k === 'sen') guardarSen(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'valcol') guardarValCol();
   });
   document.addEventListener('change', (e) => {
     const t = e.target;
@@ -2827,6 +2996,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
         .catch(() => toast('No se pudo guardar el documento en este momento'));
     } else if (t.id === 'f-destino' && document.getElementById('f-nuevo-wrap')) {
       document.getElementById('f-nuevo-wrap').hidden = t.value !== '__nuevo';
+    } else if (t.id === 'f-sen') { importarSensores(t.files && t.files[0]); t.value = '';
     } else if (t.id === 'l-fmt') {
       const f = findFmt(t.value), sb = document.getElementById('l-bid');
       if (sb) sb.innerHTML = '<option value="">Ninguno / no restar kilos</option>' + bidonesPara(f).map((b) => '<option value="' + esc(b.id) + '">Nº ' + esc(b.num) + ' · ' + esc(varPrd(b)) + ' · ' + fmtN(b.kg || 0) + ' kg</option>').join('');
@@ -2937,7 +3107,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     });
   }
   async function importarCopia(d) {
-    const cols = [COL, REG, CFG, ALM, GAS, ING, SUB, PRD, PAT, FMT, TAR, ENV, PED];
+    const cols = [COL, REG, CFG, ALM, GAS, ING, SUB, PRD, PAT, FMT, TAR, ENV, PED, SEN, LEC];
     let n = 0;
     for (const c of cols) { const m = d[c]; if (!m || typeof m !== 'object') continue; for (const id of Object.keys(m)) { await S.store.set(c, id, m[id]); n++; } }
     return n;
@@ -2960,6 +3130,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     S.store.watch(TAR, (d) => { S.tar = d; S.loaded.tar = true; refresh(); });
     S.store.watch(ENV, (d) => { S.env = d; S.loaded.env = true; refresh(); });
     S.store.watch(PED, (d) => { S.ped = d; S.loaded.ped = true; refresh(); });
+    S.store.watch(SEN, (d) => { S.sen = d; S.loaded.sen = true; refresh(); });
+    S.store.watch(LEC, (d) => { S.lec = d; S.loaded.lec = true; refresh(); });
     render(); updateNet();
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* opcional */ }
     async function conectar() {
