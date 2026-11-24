@@ -337,18 +337,22 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   /* Tamaños de tarro por defecto. El precinto de 1, 2 y 5 kg es el mismo; las etiquetas son distintas para cada tamaño. */
   const TAM_MIEL = [['5 kg', 5000], ['2 kg', 2000], ['1 kg', 1000], ['500 g', 500], ['250 g', 250], ['45 g', 45]];
   const TAM_POLEN = [['220 g', 220], ['125 g', 125], ['20 g', 20]];
+  /* El polen va en los tarros de miel: 220 g en el de 500 g, 125 g en el de 250 g y 20 g en el de 45 g. */
+  const TARRO_POLEN = { '220 g': '500 g', '125 g': '250 g', '20 g': '45 g' };
   /* Cada tarro gasta 1 tarro, 1 tapa, 1 precinto y 1 etiqueta.
      Etiquetas: genéricas por tamaño (45 g a 2 kg). Precintos: según la miel y el tamaño (el de 1 kg vale también para 2 kg). */
   const ETQ_TAM = ['2 kg', '1 kg', '500 g', '250 g', '45 g'];
   const PREC_MIEL = [['Encina', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Flores', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Bosque', ['1 kg · 2 kg', '500 g', '250 g', '45 g']], ['Retama', ['1 kg · 2 kg', '500 g', '250 g', '45 g']],
     ['Nueces', ['500 g', '250 g', '45 g']], ['Pistachos', ['250 g', '45 g']], ['Trufa', ['250 g', '45 g']], ['Polen', ['220 g', '125 g', '20 g']]];
+  /* 2 kg y 5 kg van en garrafa; el resto en tarro. */
+  const envDe = (t) => /^[25] kg$/.test(t) ? 'Garrafa ' + t : 'Tarro ' + t;
   const BASE_ENV = [].concat(
-    TAM_MIEL.map((t) => ['Tarro ' + t[0], 'tarros', 'ud']), TAM_POLEN.map((t) => ['Bote polen ' + t[0], 'tarros', 'ud']),
-    TAM_MIEL.map((t) => ['Tapa ' + t[0], 'tapas', 'ud']), TAM_POLEN.map((t) => ['Tapa bote polen ' + t[0], 'tapas', 'ud']),
+    TAM_MIEL.map((t) => [envDe(t[0]), 'tarros', 'ud']),
+    TAM_MIEL.map((t) => ['Tapa ' + t[0], 'tapas', 'ud']),
     [].concat.apply([], PREC_MIEL.map((p) => p[1].map((t) => ['Precinto ' + p[0] + ' ' + t, 'precintos', 'ud']))),
     ETQ_TAM.map((t) => ['Etiqueta ' + t, 'etiquetas', 'ud']), TAM_POLEN.map((t) => ['Etiqueta polen ' + t[0], 'etiquetas', 'ud']),
     [['Cajas de cartón', 'embalaje', 'ud']]);
-  const VIEJOS_ENV = ['Tapas', 'Etiquetas frontales', 'Contraetiquetas', 'Precintos', 'Cubo 5 kg', 'Precinto 1 kg · 2 kg · 5 kg', 'Precinto 500 g', 'Precinto 250 g', 'Precinto 45 g', 'Etiqueta 5 kg', 'Bote polen 250 g'];
+  const VIEJOS_ENV = ['Tapas', 'Etiquetas frontales', 'Contraetiquetas', 'Precintos', 'Cubo 5 kg', 'Precinto 1 kg · 2 kg · 5 kg', 'Precinto 500 g', 'Precinto 250 g', 'Precinto 45 g', 'Etiqueta 5 kg', 'Bote polen 250 g', 'Tarro 2 kg', 'Tarro 5 kg'].concat(['220 g', '125 g', '20 g'].map((t) => 'Bote polen ' + t), ['220 g', '125 g', '20 g'].map((t) => 'Tapa bote polen ' + t));
   const BASE_ALM = [['Jarabe', 'alimento', 'kg'], ['Apipasta', 'alimento', 'kg'], ['Azúcar', 'alimento', 'sacos', 'saco 20 kg'], ['Colmenas vacías', 'colmenas', 'ud'], ['Núcleos', 'cajas', 'ud'], ['Láminas', 'laminas', 'cajas', 'cajas'], ['Cazapolen', 'cazapolen', 'ud'], ['Alimentadores', 'alimentadores', 'ud'], ['Aislantes', 'aislantes', 'ud']];
   const UNIDADES = [['kg', 'kilos (kg)'], ['ud', 'unidades'], ['l', 'litros'], ['sacos', 'sacos'], ['cajas', 'cajas']];
   const CAT_GAS = ['Combustible y desplazamientos', 'Mano de obra', 'Alimentación de las abejas', 'Tratamientos y sanidad', 'Material apícola', 'Envases y etiquetas', 'Vehículos', 'Seguros', 'Seguridad Social y cuotas', 'Alquileres y terrenos', 'Obrador y análisis', 'Gestoría y tasas', 'Otros'];
@@ -2344,8 +2348,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (ok) closeSheet();
   }
   /* El precinto no va en la receta: se elige al envasar según la miel (ver precintoPara). */
-  const FMT_BASE = TAM_MIEL.slice().reverse().map((t) => ['Miel ' + t[0], 'miel', t[1], ['Tarro ' + t[0], 'Tapa ' + t[0], 'Etiqueta ' + t[0]]])
-    .concat(TAM_POLEN.slice().reverse().map((t) => ['Polen seco ' + t[0], 'polen', t[1], ['Bote polen ' + t[0], 'Tapa bote polen ' + t[0], 'Etiqueta polen ' + t[0]]]));
+  const FMT_BASE = TAM_MIEL.slice().reverse().map((t) => ['Miel ' + t[0], 'miel', t[1], [envDe(t[0]), 'Tapa ' + t[0], 'Etiqueta ' + t[0]]])
+    .concat(TAM_POLEN.slice().reverse().map((t) => ['Polen seco ' + t[0], 'polen', t[1], ['Tarro ' + TARRO_POLEN[t[0]], 'Tapa ' + TARRO_POLEN[t[0]], 'Etiqueta polen ' + t[0]]]));
   const tamTxt = (g) => (g = Number(g) || 0) >= 1000 ? fmtN(g / 1000) + ' kg' : g + ' g';
   /* Precinto que toca según formato y miel: «Precinto Encina 500 g», «Precinto Trufa 45 g», «Precinto Polen 125 g»… */
   function precintoPara(f, v) {
@@ -2360,7 +2364,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   /* Material que gasta un envasado: la receta del formato más el precinto de esa miel. */
   const matLote = (f, v) => (f && f.receta || []).concat((() => { const p = precintoPara(f, v); return p ? [{ id: p.id, q: 1 }] : []; })());
   const slugB = (t) => keyN(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const almEnv = (nom) => S.alm.find((y) => secAlm(y) === 'envasadora' && keyN(y.nombre) === keyN(nom));
+  const nomK = (n) => keyN(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s·.]+/g, '');
+  const almEnv = (nom) => S.alm.find((y) => secAlm(y) === 'envasadora' && nomK(y.nombre) === nomK(nom));
   const recetaBase = (b) => b[3].map((n) => almEnv(n)).filter(Boolean).map((x) => ({ id: x.id, q: 1 }));
   /* Crea los formatos base que falten (con id fijo, para que dos personas a la vez no los dupliquen). */
   async function ponerFormatosBase(lista, rehacer) {
@@ -2375,7 +2380,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
      quita los artículos genéricos antiguos que estén sin cantidad y rehace las recetas de los formatos base. */
   let ordenHecho = false;
   async function ordenarEnvasado() {
-    if (ordenHecho || (S.cfg && S.cfg.envOrden4) || !S.loaded.alm || !S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped || !S.store.attached()) return;
+    if (ordenHecho || (S.cfg && S.cfg.envOrden5) || !S.loaded.alm || !S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped || !S.store.attached()) return;
     const empezado = S.fmt.length || S.alm.some((y) => secAlm(y) === 'envasadora');
     if (!empezado) return;
     ordenHecho = true;
@@ -2393,7 +2398,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       /* el bote de polen es de 220 g: quita el formato de 250 g si no se ha usado */
       const f250 = S.fmt.find((f) => keyN(f.nombre) === 'polen seco 250 g');
       if (f250 && !S.tar.some((t) => t.formatoId === f250.id && Number(t.cantidad) > 0) && !S.env.some((e) => e.formatoId === f250.id) && !S.ped.some((p) => (p.lineas || []).some((l) => l.fid === f250.id))) { await S.store.del(FMT, f250.id); S.fmt = S.fmt.filter((f) => f.id !== f250.id); }
-      await S.store.set(CFG, 'main', cfgDoc({ envOrden4: true }));
+      await S.store.set(CFG, 'main', cfgDoc({ envOrden5: true }));
     } catch (e) { ordenHecho = false; }
   }
   /* --- pedidos --- */
