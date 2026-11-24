@@ -136,6 +136,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .iat { border-collapse: collapse; font-size: .82rem; margin: 4px 0 8px; }
 .iat td, .iat th { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
 .iaf { display: flex; flex-direction: column; gap: 8px; }
+.modo { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin: 0 auto 16px; background: var(--surface-2); border-radius: 12px; box-shadow: 0 0 0 6px var(--bg); }
+.modo button { min-height: 46px; border: 0; border-radius: 9px; background: none; font-weight: 700; font-size: .92rem; color: var(--ink-2); }
+.modo button[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
 .wxline { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
 .fold { border-top: 1px solid var(--line); }
 .fold-h { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; min-height: 48px; }
@@ -280,13 +283,7 @@ textarea { min-height: 84px; resize: vertical; }
 <div id="net" class="net" role="status" hidden></div>
 <div id="app" aria-live="polite"></div>
 <nav class="nav" aria-label="Secciones">
-  <div class="nav-in">
-    <button class="tab" data-act="sec" data-sec="cuaderno">Cuaderno de campo</button>
-    <button class="tab" data-act="sec" data-sec="asent">Asentamientos</button>
-    <button class="tab" data-act="sec" data-sec="almacen">Almacén</button>
-    <button class="tab" data-act="sec" data-sec="envasadora">Envasadora</button>
-    <button class="tab" data-act="sec" data-sec="finanzas">Finanzas</button>
-  </div>
+  <div class="nav-in" id="nav-in"></div>
 </nav>
 <button class="add" data-act="add" aria-label="Nuevo registro" hidden>+</button>
 <div id="sheet" class="sheet" hidden></div>
@@ -335,6 +332,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
 
   const S = { cfg: { total: 567 }, col: [], reg: [], alm: [], gas: [], ing: [], sub: [], tmp: [], prd: [], pat: [], fmt: [], tar: [], env: [], ped: [], almTab: 'material', filtroPrdE: 'almacen', filtroPrdV: 'todas', prdTab: 'miel', finTab: 'gastos', view: 'resumen', cuad: 'resumen', filtro: 'todos', filtroAs: 'todos', filtroAlm: 'todos', periodo: 'anio', sheet: null, store: null, loaded: { col: false, reg: false, alm: false, gas: false, ing: false, sub: false, tmp: false, prd: false, pat: false, fmt: false, tar: false, env: false, ped: false } };
   const $ = (s) => document.querySelector(s);
+  const KEY_MODO = 'sorillo-modo';
+  try { S.modo = localStorage.getItem(KEY_MODO) === 'env' ? 'env' : 'campo'; } catch (e) { S.modo = 'campo'; }
+  function ponerModo(m) { S.modo = m === 'env' ? 'env' : 'campo'; try { localStorage.setItem(KEY_MODO, S.modo); } catch (e) { /* sin almacenamiento */ } }
   const appEl = $('#app'), sheetEl = $('#sheet'), toastEl = $('#toast');
 
   /* ---------- utilidades ---------- */
@@ -1362,20 +1362,20 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       '<button class="step" data-act="step-alm" data-id="' + esc(x.id) + '" data-d="-1" aria-label="Restar ' + fmtN(p) + ' a ' + esc(x.nombre) + '">−' + fmtN(p) + '</button>' +
       '<button class="step" data-act="step-alm" data-id="' + esc(x.id) + '" data-d="1" aria-label="Sumar ' + fmtN(p) + ' a ' + esc(x.nombre) + '">+' + fmtN(p) + '</button></div>';
   }
-  const almTabs = () => '<div class="subnav" style="grid-template-columns:repeat(3,minmax(0,1fr))" role="group" aria-label="Almacén">' + [['material', 'Material'], ['productos', 'Productos'], ['envasadora', 'Envasadora']].map((t) => '<button data-act="alm-tab" data-v="' + t[0] + '"' + (S.almTab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>').join('') + '</div>';
-  function viewAlmacen() { return almTabs() + (S.almTab === 'productos' ? viewProductos() : viewMaterial(S.almTab === 'envasadora' ? 'envasadora' : 'material')); }
+  const almTabs = () => '<div class="subnav" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-label="Almacén">' + [['material', 'Material'], ['productos', 'Productos']].map((t) => '<button data-act="alm-tab" data-v="' + t[0] + '"' + (S.almTab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>').join('') + '</div>';
+  function viewAlmacen() { return almTabs() + (S.almTab === 'productos' ? viewProductos() : viewMaterial('material')); }
   function viewMaterial(sec) {
     if (!S.loaded.alm) return '<p class="muted">Abriendo el almacén…</p>';
     const env = sec === 'envasadora', CATS = catsDe(sec), ds = env ? ' data-sec="envasadora"' : '';
     const items = S.alm.filter((x) => secAlm(x) === sec).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
     const cats = CATS.map((c) => ({ k: c[0], t: c[1], l: items.filter((x) => catK(x) === c[0]) })).filter((c) => c.l.length);
     const f = cats.some((c) => c.k === S.filtroAlm) ? S.filtroAlm : 'todos';
-    const cab = '<header class="top"><p class="eyebrow">' + items.length + ' ' + plural(items.length, 'artículo', 'artículos') + (env ? ' de envasado' : '') + '</p><h1>Almacén</h1></header>';
-    if (!items.length) return '<div class="stack">' + cab + '<div class="empty"><p>' + (env ? 'Aquí va todo lo que se gasta en la envasadora: tarros de cada tamaño, tapas, etiquetas, contraetiquetas, precintos, cajas… Empieza con una lista base y rellena las cantidades. Luego, en la sección Envasadora, cada formato dirá qué material gasta cada tarro.' : 'Aquí va todo el material: alimento con sus kilos, colmenas vacías, cajas, láminas, cazapolen, alimentadores… Empieza con una lista base y rellena las cantidades, o añade los artículos uno a uno.') + '</p><div class="actions"><button class="btn primary" data-act="base-alm"' + ds + '>Crear lista base</button><button class="btn" data-act="new-alm"' + ds + '>Añadir artículo</button></div></div></div>';
+    const cab = '<header class="top"><p class="eyebrow">' + items.length + ' ' + plural(items.length, 'artículo', 'artículos') + (env ? ' de envasado' : '') + '</p><h1>' + (env ? 'Material de envasado' : 'Almacén') + '</h1></header>';
+    if (!items.length) return '<div class="stack">' + cab + '<div class="empty"><p>' + (env ? 'Aquí va todo lo que se gasta en la envasadora: tarros de cada tamaño, tapas, etiquetas, contraetiquetas, precintos, cajas… Empieza con una lista base y rellena las cantidades. Luego, en Formatos, cada formato dirá qué material gasta cada tarro.' : 'Aquí va todo el material: alimento con sus kilos, colmenas vacías, cajas, láminas, cazapolen, alimentadores… Empieza con una lista base y rellena las cantidades, o añade los artículos uno a uno.') + '</p><div class="actions"><button class="btn primary" data-act="base-alm"' + ds + '>Crear lista base</button><button class="btn" data-act="new-alm"' + ds + '>Añadir artículo</button></div></div></div>';
     const bajos = items.filter((x) => !sinContar(x) && (Number(x.cantidad) <= 0 || (Number(x.minimo) > 0 && Number(x.cantidad) <= Number(x.minimo)))).length;
     const lista = (l, k) => '<div class="list">' + l.map(filaAlm).join('') + '</div>' + '<button class="btn add-line" data-act="new-alm"' + ds + ' data-cat="' + k + '">+ Añadir ' + (k === 'alimento' ? 'otro alimento' : 'a ' + (CATS.find((c) => c[0] === k) || [0, 'esta sección'])[1].toLowerCase()) + '</button>';
     return '<div class="stack">' + cab +
-      '<div class="actions"><button class="btn primary" data-act="new-alm"' + ds + '>Añadir artículo</button>' + (env ? '<button class="btn" data-act="sec" data-sec="envasadora">Ir a la Envasadora ›</button>' : '') + '</div>' +
+      '<div class="actions"><button class="btn primary" data-act="new-alm"' + ds + '>Añadir artículo</button>' + (env ? '<button class="btn" data-act="env-tab" data-v="formatos">Formatos ›</button>' : '') + '</div>' +
       '<dl class="facts-row c2">' + cats.map((c) => '<div><dt>' + esc(c.t) + '</dt><dd>' + totTxt(c.l) + '</dd></div>').join('') + '</dl>' +
       (bajos ? '<p class="hint">' + bajos + ' ' + plural(bajos, 'artículo con poco stock o agotado.', 'artículos con poco stock o agotados.') + '</p>' : '') +
       '<div class="chips" role="group" aria-label="Filtrar por tipo de material"><button class="chip" data-act="filtro-alm" data-v="todos" aria-pressed="' + (f === 'todos') + '">Todo</button>' + cats.map((c) => '<button class="chip" data-act="filtro-alm" data-v="' + c.k + '" aria-pressed="' + (f === c.k) + '">' + esc(c.t) + '</button>').join('') + '</div>' +
@@ -1660,10 +1660,25 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   function subnav() {
     return '<div class="subnav s4" role="group" aria-label="Cuaderno de campo">' + [['resumen', 'Resumen'], ['asentamientos', 'Asentamientos'], ['diario', 'Diario'], ['movimientos', 'Movimientos']].map((v) => '<button data-act="nav" data-view="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + v[1] + '</button>').join('') + '</div>';
   }
+  const modoBar = () => '<div class="modo" role="group" aria-label="Parte de SORILLO"><button data-act="modo" data-v="campo"' + (S.modo !== 'env' ? ' aria-current="page"' : '') + '>🐝 Cuaderno de campo</button><button data-act="modo" data-v="env"' + (S.modo === 'env' ? ' aria-current="page"' : '') + '>🫙 Envasadora</button></div>';
+  function pintarNav() {
+    const el = document.getElementById('nav-in'); if (!el) return;
+    if (S.modo === 'env') {
+      const t = S.envTab || 'existencias', ab = S.loaded.ped ? pedAbiertos() : 0;
+      const L = [['existencias', 'Existencias'], ['pedidos', 'Pedidos' + (ab ? ' (' + ab + ')' : '')], ['lotes', 'Envasado'], ['material', 'Material'], ['formatos', 'Formatos']];
+      el.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+      el.innerHTML = L.map((i) => '<button class="tab" data-act="env-tab" data-v="' + i[0] + '"' + (t === i[0] ? ' aria-current="page"' : '') + '>' + i[1] + '</button>').join('');
+    } else {
+      el.style.gridTemplateColumns = 'repeat(4, minmax(0, 1fr))';
+      el.innerHTML = [['cuaderno', 'Cuaderno de campo'], ['asent', 'Asentamientos'], ['almacen', 'Almacén'], ['finanzas', 'Finanzas']].map((i) => '<button class="tab" data-act="sec" data-sec="' + i[0] + '">' + i[1] + '</button>').join('');
+    }
+  }
   function render() {
     if (!S.loaded.col || !S.loaded.reg) { appEl.innerHTML = '<p class="muted">Abriendo el cuaderno…</p>'; return; }
-    const sec = secOf(S.view);
-    appEl.innerHTML = sec === 'envasadora' ? viewEnvasadora() : sec === 'asent' ? viewAsent() : sec === 'almacen' ? viewAlmacen() : sec === 'finanzas' ? viewFinanzas() : subnav() + (S.view === 'asentamientos' ? viewAsentamientos() : S.view === 'diario' ? viewDiario() : S.view === 'movimientos' ? viewMovimientos() : viewResumen());
+    const env = S.modo === 'env', sec = env ? 'env' : secOf(S.view);
+    pintarNav();
+    if (env) { appEl.innerHTML = modoBar() + viewEnvasadora(); const ab0 = document.querySelector('.add'); if (ab0) ab0.hidden = true; return; }
+    appEl.innerHTML = modoBar() + (sec === 'asent' ? viewAsent() : sec === 'almacen' ? viewAlmacen() : sec === 'finanzas' ? viewFinanzas() : subnav() + (S.view === 'asentamientos' ? viewAsentamientos() : S.view === 'diario' ? viewDiario() : S.view === 'movimientos' ? viewMovimientos() : viewResumen()));
     document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.sec === sec) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
     const ab = document.querySelector('.add'); if (ab) ab.hidden = sec !== 'cuaderno';
     const tb = document.querySelector('.tab[data-sec="asent"]');
@@ -2036,9 +2051,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const envTabs = () => '<div class="subnav s4" role="group" aria-label="Envasadora">' + [['existencias', 'Existencias'], ['pedidos', 'Pedidos'], ['lotes', 'Envasado'], ['formatos', 'Formatos']].map((t) => '<button data-act="env-tab" data-v="' + t[0] + '"' + ((S.envTab || 'existencias') === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + (t[0] === 'pedidos' && pedAbiertos() ? ' (' + pedAbiertos() + ')' : '') + '</button>').join('') + '</div>';
   const pedAbiertos = () => S.ped.filter((p) => !p.estado || p.estado === 'nuevo' || p.estado === 'preparado').length;
   function viewEnvasadora() {
-    if (!S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped) return '<p class="muted">Abriendo la envasadora…</p>';
+    if (!S.loaded.fmt || !S.loaded.tar || !S.loaded.env || !S.loaded.ped || !S.loaded.alm) return '<p class="muted">Abriendo la envasadora…</p>';
     const t = S.envTab || 'existencias';
-    return envTabs() + (t === 'pedidos' ? viewPedidos() : t === 'lotes' ? viewLotes() : t === 'formatos' ? viewFormatos() : viewTarros());
+    return t === 'pedidos' ? viewPedidos() : t === 'lotes' ? viewLotes() : t === 'formatos' ? viewFormatos() : t === 'material' ? viewMaterial('envasadora') : viewTarros();
   }
   const cabEnv = (eyebrow) => '<header class="top"><p class="eyebrow">' + eyebrow + '</p><h1>Envasadora</h1></header>';
   const sinFormatos = () => '<div class="empty"><p>Primero crea los <b>formatos</b> que envasáis (por ejemplo «Miel 500 g» o «Polen seco 250 g») y qué material gasta cada tarro: tarro, tapa, etiquetas… Así, al envasar, SORILLO descuenta solo el material del almacén.</p><div class="actions"><button class="btn primary" data-act="fmt-base">Crear formatos base</button><button class="btn" data-act="new-fmt">Crear formato</button></div></div>';
@@ -2174,7 +2189,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return '<div class="stack">' + cabEnv(l.length + ' ' + plural(l.length, 'formato', 'formatos')) +
       '<div class="actions"><button class="btn primary" data-act="new-fmt">+ Nuevo formato</button>' + (l.length ? '' : '<button class="btn" data-act="fmt-base">Crear formatos base</button>') + '</div>' +
       (l.length ? '<div class="list">' + l.map((f) => '<button class="row" data-act="edit-fmt" data-id="' + esc(f.id) + '"><span class="row-main"><b>' + esc(f.nombre) + '</b><span class="muted">' + esc([prodEnv(f.prod)[1], f.gramos ? fmtN(f.gramos) + ' g' : '', (f.receta || []).length ? (f.receta || []).map((m) => { const x = S.alm.find((y) => y.id === m.id); return x ? (m.q !== 1 ? m.q + ' × ' : '') + x.nombre : null; }).filter(Boolean).join(', ') : 'sin material asignado'].filter(Boolean).join(' · ')) + '</span></span>' + (Number(f.pvp) > 0 ? '<span class="money">' + eurP(f.pvp) + '</span>' : '') + '</button>').join('') + '</div>' : sinFormatos()) +
-      '<p class="hint">Cada formato dice cuánto lleva cada tarro y qué material gasta (de Almacén → Envasadora). El precio es el que aparece por defecto en los pedidos; luego lo puedes cambiar en cada pedido.</p></div>';
+      '<p class="hint">Cada formato dice cuánto lleva cada tarro y qué material gasta. El precio es el que aparece por defecto en los pedidos; luego lo puedes cambiar en cada pedido. El material sale de la pestaña Material.</p></div>';
   }
   function sheetFmt(s) {
     const x = s.id ? findFmt(s.id) : null; if (s.id && !x) return '';
@@ -2187,7 +2202,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       fld('f-pvp', 'Precio de venta por tarro (€)', inp('f-pvp', 'number', v.pvp, 'min="0" step="0.01" inputmode="decimal"'), 'Opcional. Se propone al hacer un pedido') +
       '<h3>Material que gasta cada tarro</h3>' +
       (mats.length ? mats.map((m) => '<div class="item" style="padding:6px 10px"><label class="chk" style="flex:1"><input type="checkbox" class="f-m" data-id="' + esc(m.id) + '"' + (q(m.id) != null ? ' checked' : '') + '>' + esc(m.nombre) + (m.detalle ? ' <span class="muted">(' + esc(m.detalle) + ')</span>' : '') + '</label><input class="f-q" style="width:70px;min-height:40px;text-align:center" data-id="' + esc(m.id) + '" type="number" min="0" step="any" inputmode="decimal" value="' + esc(q(m.id) == null ? 1 : q(m.id)) + '" aria-label="Cantidad por tarro de ' + esc(m.nombre) + '"></div>').join('')
-        : '<p class="hint">Aún no hay material en <b>Almacén → Envasadora</b>. Añádelo allí (tarros, tapas, etiquetas…) y vuelve aquí para asignarlo.</p>') +
+        : '<p class="hint">Aún no hay material de envasado. Añádelo en la pestaña <b>Material</b> (tarros, tapas, etiquetas…) y vuelve aquí para asignarlo.</p>') +
       '<p class="err" id="f-err" hidden></p><button class="btn primary" type="submit">' + (x ? 'Guardar cambios' : 'Crear formato') + '</button></form>' +
       (x ? '<div id="del-zone"><button class="btn plain" data-act="ask-del-fmt" data-id="' + esc(x.id) + '">Eliminar formato</button></div>' : '');
   }
@@ -2638,10 +2653,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const t = e.target.closest('[data-act]'); if (!t) return;
     const a = t.dataset.act, d = t.dataset;
     if (a === 'nav') { S.view = d.view; S.cuad = d.view; render(); window.scrollTo(0, 0); }
-    else if (a === 'sec') { S.patOk = false; S.view = d.sec === 'cuaderno' ? S.cuad : d.sec; render(); window.scrollTo(0, 0); }
+    else if (a === 'sec') { ponerModo('campo'); S.patOk = false; S.view = d.sec === 'cuaderno' ? S.cuad : d.sec; render(); window.scrollTo(0, 0); }
     else if (a === 'add') { const sc = secOf(S.view); openSheet(sc === 'almacen' ? { type: 'alm' } : sc === 'finanzas' ? { type: S.finTab === 'ingresos' ? 'ing' : 'gas' } : { type: 'reg' }); }
     else if (a === 'filtro-alm') { S.filtroAlm = d.v; render(); }
-    else if (a === 'alm-tab') { S.almTab = d.v === 'productos' || d.v === 'envasadora' ? d.v : 'material'; render(); window.scrollTo(0, 0); }
+    else if (a === 'alm-tab') { S.almTab = d.v === 'productos' ? 'productos' : 'material'; render(); window.scrollTo(0, 0); }
     else if (a === 'filtro-prd-e') { S.filtroPrdE = d.v; S.filtroPrdV = 'todas'; render(); }
     else if (a === 'filtro-prd-v') { S.filtroPrdV = d.v; render(); }
     else if (a === 'prd-tab') { S.prdTab = d.v === 'polen' ? 'polen' : 'miel'; S.filtroPrdV = 'todas'; render(); }
@@ -2672,7 +2687,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (a === 'exportar') exportarDatos();
     else if (a === 'copia') copiaSeguridad();
     else if (a === 'ruta') openSheet({ type: 'ruta' });
-    else if (a === 'env-tab') { S.envTab = d.v; render(); window.scrollTo(0, 0); }
+    else if (a === 'env-tab') { ponerModo('env'); S.envTab = d.v; render(); window.scrollTo(0, 0); }
+    else if (a === 'modo') { if (S.modo !== d.v) { ponerModo(d.v); S.patOk = false; render(); window.scrollTo(0, 0); } }
     else if (a === 'filtro-ped') { S.filtroPed = d.v; render(); }
     else if (a === 'new-lote') openSheet({ type: 'lote' });
     else if (a === 'open-lote') openSheet({ type: 'lote', id: d.id });
