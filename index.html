@@ -139,6 +139,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .modo { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin: 0 auto 16px; background: var(--surface-2); border-radius: 12px; box-shadow: 0 0 0 6px var(--bg); }
 .modo button { min-height: 46px; border: 0; border-radius: 9px; background: none; font-weight: 700; font-size: .92rem; color: var(--ink-2); }
 .modo button[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+.bgp { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.bgw { display: grid; gap: 2px; text-align: center; font-size: .72rem; }
+.bgw > div { display: flex; flex-direction: column; border-left: 1px solid var(--line); padding: 2px 0; }
+.bgw > div:first-child { border-left: 0; }
+.bgw-i { font-size: 1.15rem; line-height: 1.3; }
+.bgn { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.bgn .chip { padding: 6px 8px; }
+.bgcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.bgc { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px; border-radius: 10px; border: 2px solid var(--bgc); background: color-mix(in srgb, var(--bgc) 12%, var(--surface)); }
+.bgc-t { font-weight: 700; font-size: .85rem; }
+.bgc-v { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; line-height: 1.1; }
+.bgc-s, .bgc-c { font-size: .72rem; color: var(--ink-2); }
+.bgc-c.mal { color: var(--late); font-weight: 700; }
+.bgp .pill, #sen-sec .pill { white-space: normal; align-items: flex-start; }
 .wxline { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
 .fold { border-top: 1px solid var(--line); }
 .fold-h { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; min-height: 48px; }
@@ -1760,7 +1774,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       (c.coords ? '<div class="wide"><dt>Coordenadas</dt><dd>' + esc(c.coords) + ' · <a href="https://www.google.com/maps?q=' + encodeURIComponent(parseCoords(c.coords) ? parseCoords(c.coords).lat.toFixed(6) + ',' + parseCoords(c.coords).lon.toFixed(6) : c.coords) + '" target="_blank" rel="noopener">Abrir en el mapa</a></dd></div>' : '') +
       (rentaInfo(c) ? (function () { const i = rentaInfo(c); return '<div class="wide"><dt>Renta</dt><dd>' + i.txt + ' · ' + FRECS[i.f][1].toLowerCase() + ' (≈ ' + (i.miel ? fmtN(i.anual) + ' kg' : eur(i.anual)) + ' al año)' + (c.propietario ? ' · ' + esc(c.propietario) : '') + '</dd></div><div class="wide"><dt>Próximo pago</dt><dd>' + (c.vence ? esc(fmtCorta(c.vence)) + ' ' + pill(i) : 'Sin fecha anotada') + (c.ultimoPago ? ' <span class="muted">· último pago ' + esc(fmtCorta(c.ultimoPago)) + '</span>' : '') + '</dd></div>'; })() : '') +
       (c.notas ? '<div class="wide"><dt>Notas</dt><dd>' + esc(c.notas) + '</dd></div>' : '') + '</dl>' +
-      (S.sen.some((x) => x.asentamientoId === id) ? '<h3>📡 Básculas y sensores</h3><div class="list">' + S.sen.filter((x) => x.asentamientoId === id).map((x) => filaSen(x, true)).join('') + '</div>' : '') +
+      (S.sen.some((x) => x.asentamientoId === id) ? '<h3>📡 Básculas y sensores (BeeGuard)</h3>' + bgPanel(c) : '') +
       '<div class="actions"><button class="btn primary" data-act="new-reg" data-col="' + esc(id) + '" data-tipo="inspeccion">Registrar inspección</button><button class="btn" data-act="new-reg" data-col="' + esc(id) + '" data-tipo="traslado">Trasladar</button><button class="btn" data-act="edit-col" data-id="' + esc(id) + '">Editar</button>' + (rentaInfo(c) ? '<button class="btn" data-act="pagar" data-id="' + esc(id) + '">Anotar pago de renta</button>' : '') + '</div>' +
       '<h3>Historial</h3>' + (hist.length ? '<div class="list">' + hist.map(filaReg).join('') + '</div>' : '<p class="hint">Aún no hay registros de este asentamiento.</p>') +
       '<div id="del-zone"><button class="btn plain" data-act="ask-del-col">Eliminar asentamiento</button></div>';
@@ -2387,7 +2401,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   function sensoresSeccion() {
     const l = S.sen.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
     return '<section class="sect" id="sen-sec"><div class="sect-head"><h3>📡 Básculas y sensores (BeeGuard)</h3></div>' +
-      (l.length ? '<div class="list">' + l.map((s) => filaSen(s, false)).join('') + '</div>' : '<p class="hint">Importa el archivo CSV que exportas desde BeeGuard para ver aquí el peso de tus colmenas testigo, la temperatura y la humedad, con avisos si el peso cae de golpe o un sensor deja de enviar datos.</p>') +
+      (l.length ? S.col.filter((c) => l.some((s) => s.asentamientoId === c.id)).map((c) => '<div class="catline"><button class="link" data-act="open-col" data-id="' + esc(c.id) + '" style="font-size:1rem;font-weight:700;text-decoration:none">📍 ' + esc(nombreNum(c)) + ' ›</button></div>' + bgPanel(c)).join('') +
+        (l.some((s) => !findCol(s.asentamientoId)) ? '<h3>Sin asentamiento asignado</h3><div class="list">' + l.filter((s) => !findCol(s.asentamientoId)).map((s) => filaSen(s, false)).join('') + '</div>' : '') : '<p class="hint">Importa el archivo CSV que exportas desde BeeGuard para ver aquí el peso de tus colmenas testigo, la temperatura y la humedad, con avisos si el peso cae de golpe o un sensor deja de enviar datos.</p>') +
       '<div class="actions"><label class="btn primary" style="cursor:pointer;text-align:center">⬆ Importar datos de BeeGuard<input type="file" id="f-sen" accept=".csv,text/csv,text/plain" hidden></label><a class="btn" style="text-align:center;text-decoration:none" href="https://www.beeguard.fr" target="_blank" rel="noopener">Abrir BeeGuard</a></div>' +
       (l.length ? '<p class="hint">Toca un sensor para cambiar su nombre o su asentamiento. En la ficha de cada asentamiento verás sus gráficas. Puedes importar el mismo archivo o uno más reciente las veces que quieras: los datos repetidos no se duplican.</p>' : '') + '</section>';
   }
@@ -2483,6 +2498,118 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   function senTxt(c) {
     return S.sen.filter((s) => s.asentamientoId === c.id).map((s) => { const I = infoSen(s), T = tipoSen(s.tipo);
       return T[1] + ' «' + s.nombre + '»: ' + (I.ult ? fmtN(Math.round(I.ult[1] * 100) / 100) + ' ' + T[2] + ' (' + I.ult[0] + ' h)' : 'sin datos') + (s.tipo === 'peso' && I.d7 != null ? ', variación 7 días ' + signo(I.d7) + ' kg, 30 días ' + signo(I.d30) + ' kg' : '') + (I.avisos.length ? ' [AVISO: ' + I.avisos.join('; ') + ']' : ''); }).join('; ');
+  }
+
+  /* ---------- Panel por colmenar al estilo BeeGuard: tiempo diario, gráficas y tarjetas de dispositivos ---------- */
+  const BG_COL = ['#23a8a6', '#b8661f', '#6a5acd', '#2b7440', '#c0392b'];
+  const BG_MODOS = [['peso', 'Peso'], ['dif', 'Peso diario (±)'], ['th', 'Temp./humedad interna'], ['clima', 'Clima']];
+  S.bgv = {}; S.bgCl = {};
+  const bgV = (aid) => (S.bgv[aid] = S.bgv[aid] || { modo: 'peso', dias: 7, off: 0 });
+  const WMO = (c) => c == null ? '·' : c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' : c === 45 || c === 48 ? '🌫️' : c >= 51 && c <= 67 ? '🌧️' : c >= 71 && c <= 77 ? '🌨️' : c >= 80 && c <= 82 ? '🌦️' : c >= 95 ? '⛈️' : '☁️';
+  async function bgClima(c) {
+    const q = parseCoords(c.coords); if (!q) return null;
+    const o = S.bgCl[c.id]; if (o && (o.busy || Date.now() - o.ts < 60 * 60e3)) return o.d;
+    S.bgCl[c.id] = { busy: true, ts: Date.now(), d: o ? o.d : null };
+    try {
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + q.lat.toFixed(4) + '&longitude=' + q.lon.toFixed(4) + '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&hourly=temperature_2m&past_days=62&forecast_days=2&timezone=Europe%2FMadrid');
+      const j = await r.json(), d = { dia: {}, hora: {} };
+      j.daily.time.forEach((f, i) => { d.dia[f] = { code: j.daily.weather_code[i], max: j.daily.temperature_2m_max[i], min: j.daily.temperature_2m_min[i], sr: Number((j.daily.sunrise[i] || '').slice(11, 13)) + Number((j.daily.sunrise[i] || '').slice(14, 16)) / 60, ss: Number((j.daily.sunset[i] || '').slice(11, 13)) + Number((j.daily.sunset[i] || '').slice(14, 16)) / 60 }; });
+      j.hourly.time.forEach((t, i) => { d.hora[t.slice(0, 13)] = j.hourly.temperature_2m[i]; });
+      S.bgCl[c.id] = { ts: Date.now(), d };
+      if (S.sheet && S.sheet.type === 'detalle' && S.sheet.id === c.id) drawSheet(false); else render();
+      return d;
+    } catch (e) { S.bgCl[c.id] = { ts: Date.now(), d: o ? o.d : null }; return null; }
+  }
+  const diaMas = (f, n) => { const d = parse(f); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const fDia = (f) => parse(f).getDate() + ' ' + parse(f).toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+  function bgVentana(sens, v) {
+    let fin = '';
+    sens.forEach((s) => { const sr = serie(s.id); if (sr.length && sr[sr.length - 1][0].slice(0, 10) > fin) fin = sr[sr.length - 1][0].slice(0, 10); });
+    if (!fin) fin = hoy();
+    fin = diaMas(fin, -v.off * v.dias);
+    const ini = diaMas(fin, -(v.dias - 1));
+    return { ini, fin, dias: Array.from({ length: v.dias }, (_, i) => diaMas(ini, i)) };
+  }
+  function bgGrafica(c, sens, v, win, cl) {
+    const W = 340, H = 190, L = 34, R = v.modo === 'th' ? 30 : 8, T = 8, B = 22, n = win.dias.length;
+    const t0 = parse(win.ini).getTime() - 12 * 3600e3, t1 = t0 + n * 864e5;
+    const xT = (ms) => L + (ms - t0) / (t1 - t0) * (W - L - R);
+    const xK = (k) => xT(new Date(k.slice(0, 10) + 'T' + k.slice(11, 13) + ':00:00').getTime());
+    let g = '';
+    win.dias.forEach((f) => { const dc = cl && cl.dia[f], sr = dc && dc.sr || 8, ss = dc && dc.ss || 18, b = parse(f).getTime() - 12 * 3600e3; g += '<rect x="' + xT(b + sr * 3600e3).toFixed(1) + '" y="' + T + '" width="' + Math.max(1, xT(b + ss * 3600e3) - xT(b + sr * 3600e3)).toFixed(1) + '" height="' + (H - T - B) + '" fill="#f6c46a" opacity=".28"/>'; });
+    const step = n > 10 ? Math.ceil(n / 6) : 1;
+    win.dias.forEach((f, i) => { const x = xT(parse(f).getTime() - 12 * 3600e3); g += '<line x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--line)" stroke-width="' + (n > 10 ? .5 : 1) + '"/>' + (i % step ? '' : '<text x="' + x.toFixed(1) + '" y="' + (H - 6) + '" font-size="9" text-anchor="middle" fill="var(--ink-2)">' + esc(fDia(f)) + '</text>'); });
+    const eje = (lo, hi, y, fmt, lado, color) => [lo, (lo + hi) / 2, hi].map((val) => '<text x="' + (lado === 'r' ? W - R + 3 : L - 3) + '" y="' + (y(val) + 3).toFixed(1) + '" font-size="9" text-anchor="' + (lado === 'r' ? 'start' : 'end') + '" fill="' + (color || 'var(--ink-2)') + '">' + fmt(val) + '</text>').join('');
+    const enVentana = (k) => k.slice(0, 10) >= win.ini && k.slice(0, 10) <= win.fin;
+    const conHuecos = (s) => { const out = []; let pk = null; s.forEach(([k, val]) => { const ms = new Date(k.slice(0, 10) + 'T' + k.slice(11, 13) + ':00:00').getTime(); out.push({ ms, k, val, gap: pk != null && ms - pk > 3 * 3600e3 }); pk = ms; }); return out; };
+    const path = (s, y, col, dash) => { let d = ''; conHuecos(s).forEach((p, i) => { d += (i === 0 || p.gap ? ' M' : ' L') + xK(p.k).toFixed(1) + ' ' + y(p.val).toFixed(1); }); return d ? '<path d="' + d.trim() + '" fill="none" stroke="' + col + '" stroke-width="1.8" stroke-linejoin="round"' + (dash ? ' stroke-dasharray="4 3"' : '') + '/>' : ''; };
+    let cuerpo = '', ley = [];
+    if (v.modo === 'peso' || v.modo === 'dif') {
+      const ps = sens.filter((s) => s.tipo === 'peso');
+      if (!ps.length) return '<p class="hint">Este colmenar no tiene básculas.</p>';
+      if (v.modo === 'peso') {
+        const se = ps.map((s) => serie(s.id).filter(([k]) => enVentana(k)));
+        const all = [].concat.apply([], se.map((s) => s.map((p) => p[1]))); if (!all.length) return '<p class="hint">No hay datos de peso en estas fechas.</p>';
+        let lo = Math.floor(Math.min.apply(null, all) - 1), hi = Math.ceil(Math.max.apply(null, all) + 1);
+        const y = (val) => T + (hi - val) * (H - T - B) / (hi - lo);
+        cuerpo = se.map((s, i) => path(s, y, BG_COL[i % BG_COL.length])).join('') + eje(lo, hi, y, (x) => fmtN(Math.round(x)), 'l') + '<text x="9" y="' + (T + (H - T - B) / 2) + '" font-size="9" transform="rotate(-90 9 ' + (T + (H - T - B) / 2) + ')" text-anchor="middle" fill="var(--ink-2)">Peso (kg)</text>';
+      } else {
+        const dd = ps.map((s) => { const m = {}; diario(s).forEach((o) => { m[o.f] = o.v; }); return m; });
+        const del = dd.map((m) => win.dias.map((f) => m[f] != null && m[diaMas(f, -1)] != null ? m[f] - m[diaMas(f, -1)] : null));
+        const mx = Math.max(0.5, Math.ceil(Math.max.apply(null, [].concat.apply([], del).filter((x) => x != null).map(Math.abs).concat([0.5])) * 2) / 2);
+        const y = (val) => T + (mx - val) * (H - T - B) / (2 * mx), bw = (W - L - R) / n / (ps.length + 1);
+        cuerpo = '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="var(--ink-2)" stroke-width=".6"/>';
+        del.forEach((arr, si) => arr.forEach((d, i) => { if (d == null) return; const x0 = xT(parse(win.dias[i]).getTime() - 12 * 3600e3) + bw * (si + 0.5); cuerpo += '<rect x="' + x0.toFixed(1) + '" y="' + Math.min(y(0), y(d)).toFixed(1) + '" width="' + (bw * 0.9).toFixed(1) + '" height="' + Math.max(1, Math.abs(y(d) - y(0))).toFixed(1) + '" fill="' + BG_COL[si % BG_COL.length] + '"/>' + (n <= 10 ? '<text x="' + (x0 + bw * .45).toFixed(1) + '" y="' + (d >= 0 ? y(d) - 3 : y(d) + 10).toFixed(1) + '" font-size="8" text-anchor="middle" fill="var(--ink)">' + (d >= 0 ? '+' : '−') + fmtN(Math.abs(Math.round(d * 100) / 100)) + '</text>' : ''); }));
+        cuerpo += eje(-mx, mx, y, (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + fmtN(Math.abs(x)), 'l') + '<text x="9" y="' + (T + (H - T - B) / 2) + '" font-size="9" transform="rotate(-90 9 ' + (T + (H - T - B) / 2) + ')" text-anchor="middle" fill="var(--ink-2)">kg por día</text>';
+      }
+      ley = ps.map((s, i) => [BG_COL[i % BG_COL.length], s.nombre]);
+    } else if (v.modo === 'th') {
+      const ts = sens.filter((s) => s.tipo === 'temp'), hs = sens.filter((s) => s.tipo === 'hum');
+      if (!ts.length && !hs.length) return '<p class="hint">Este colmenar no tiene sensor de temperatura o humedad.</p>';
+      const st = ts.map((s) => serie(s.id).filter(([k]) => enVentana(k))), sh = hs.map((s) => serie(s.id).filter(([k]) => enVentana(k)));
+      const at = [].concat.apply([], st.map((s) => s.map((p) => p[1]))), ah = [].concat.apply([], sh.map((s) => s.map((p) => p[1])));
+      if (!at.length && !ah.length) return '<p class="hint">No hay datos de temperatura o humedad en estas fechas.</p>';
+      const tlo = at.length ? Math.floor(Math.min.apply(null, at) - 1) : 0, thi = at.length ? Math.ceil(Math.max.apply(null, at) + 1) : 40;
+      const hlo = ah.length ? Math.floor(Math.min.apply(null, ah) - 2) : 0, hhi = ah.length ? Math.ceil(Math.max.apply(null, ah) + 2) : 100;
+      const yt = (val) => T + (thi - val) * (H - T - B) / (thi - tlo), yh = (val) => T + (hhi - val) * (H - T - B) / (hhi - hlo);
+      cuerpo = st.map((s) => path(s, yt, '#9b3fb5')).join('') + sh.map((s) => path(s, yh, '#9b3fb5', true)).join('') + (at.length ? eje(tlo, thi, yt, (x) => fmtN(Math.round(x)) + '°', 'l', '#9b3fb5') : '') + (ah.length ? eje(hlo, hhi, yh, (x) => fmtN(Math.round(x)) + '%', 'r', '#9b3fb5') : '');
+      ley = [['#9b3fb5', 'Temperatura (línea)'], ['#9b3fb5', 'Humedad (discontinua)']];
+    } else {
+      if (!cl) return '<p class="hint">' + (parseCoords(c.coords) ? 'Cargando el clima…' : 'Apunta las coordenadas del asentamiento para ver el clima.') + '</p>';
+      const s = Object.keys(cl.hora).filter((k) => k.slice(0, 10) >= win.ini && k.slice(0, 10) <= win.fin).sort().map((k) => [k, cl.hora[k]]).filter((p) => p[1] != null);
+      if (!s.length) return '<p class="hint">Sin datos del clima para estas fechas.</p>';
+      const vals = s.map((p) => p[1]), lo = Math.floor(Math.min.apply(null, vals) - 2), hi = Math.ceil(Math.max.apply(null, vals) + 2);
+      const y = (val) => T + (hi - val) * (H - T - B) / (hi - lo);
+      const pts = s.map((p) => xK(p[0]).toFixed(1) + ' ' + y(p[1]).toFixed(1));
+      cuerpo = '<path d="M' + pts[0].split(' ')[0] + ' ' + (H - B) + ' L' + pts.join(' L') + ' L' + pts[pts.length - 1].split(' ')[0] + ' ' + (H - B) + ' Z" fill="#e0574f" opacity=".15"/>' + path(s, y, '#e0574f') + eje(lo, hi, y, (x) => fmtN(Math.round(x)) + '°', 'l', '#e0574f');
+      ley = [['#e0574f', 'Temperatura exterior (Open-Meteo)']];
+    }
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="Gráfica">' + g + cuerpo + '</svg>' +
+      '<div class="legend">' + ley.map((l) => '<span><i style="background:' + l[0] + ';clip-path:none;width:14px;height:3px"></i>' + esc(l[1]) + '</span>').join('') + '<span><i style="background:#f6c46a;clip-path:none;width:12px;height:10px;opacity:.6"></i>Día</span></div>';
+  }
+  function bgTarjeta(s, i, pesoIdx) {
+    const I = infoSen(s), T = tipoSen(s.tipo), col = s.tipo === 'peso' ? BG_COL[pesoIdx % BG_COL.length] : '#9b3fb5';
+    const s24 = serie(s.id).slice(-24).map((p) => p[1]), mn = s24.length ? Math.min.apply(null, s24) : null, mx = s24.length ? Math.max.apply(null, s24) : null;
+    const big = s.tipo === 'peso' ? (I.ult ? fmtN(Math.round(I.ult[1] * 10) / 10) + ' kg' : '--') : mn != null ? '<span style="color:#3b7dd8">' + fmtN(Math.round(mn * 10) / 10) + '</span>/<span style="color:var(--late)">' + fmtN(Math.round(mx * 10) / 10) + '</span> ' + T[2] : '--';
+    const com = I.horas == null ? 'sin datos' : I.horas < 1 ? 'hace menos de 1 hora' : I.horas < 48 ? 'hace unas ' + Math.round(I.horas) + ' horas' : 'hace ' + Math.round(I.horas / 24) + ' días';
+    return '<button class="bgc" data-act="edit-sen" data-id="' + esc(s.id) + '" style="--bgc:' + col + '"><span class="bgc-t">' + (s.tipo === 'peso' ? '⚖️' : s.tipo === 'temp' ? '🌡️' : s.tipo === 'hum' ? '💧' : '📟') + ' ' + esc(s.nombre) + '</span><span class="bgc-v">' + big + '</span>' +
+      (s.tipo === 'peso' && I.d1 != null ? '<span class="bgc-s">1 día ' + signo(I.d1) + ' · 7 días ' + signo(I.d7) + ' kg</span>' : s.tipo !== 'peso' ? '<span class="bgc-s">mín./máx. últimas 24 h</span>' : '') +
+      '<span class="bgc-c' + (I.avisos.length ? ' mal' : '') + '">Últ. com.: ' + com + '</span></button>';
+  }
+  function bgPanel(c) {
+    const sens = S.sen.filter((s) => s.asentamientoId === c.id).sort((a, b) => ['peso', 'temp', 'hum', 'otro'].indexOf(a.tipo) - ['peso', 'temp', 'hum', 'otro'].indexOf(b.tipo) || String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    if (!sens.length) return '';
+    const v = bgV(c.id), win = bgVentana(sens, v), clo = S.bgCl[c.id], cl = clo && clo.d;
+    if (!clo || (!clo.busy && Date.now() - clo.ts > 60 * 60e3)) setTimeout(() => bgClima(c), 0);
+    const tira = v.dias <= 10 ? '<div class="bgw" style="grid-template-columns:repeat(' + win.dias.length + ',1fr)">' + win.dias.map((f) => { const d = cl && cl.dia[f]; return '<div><b>' + esc(fDia(f)) + '</b><span class="bgw-i">' + (d ? WMO(d.code) : '·') + '</span><span style="color:var(--late)">' + (d ? fmtN(Math.round(d.max * 10) / 10) + '°' : '') + '</span><span style="color:#3b7dd8">' + (d ? fmtN(Math.round(d.min * 10) / 10) + '°' : '') + '</span></div>'; }).join('') + '</div>' : '';
+    const pesoS = sens.filter((s) => s.tipo === 'peso');
+    const avs = sens.map((s) => ({ s, I: infoSen(s) })).filter((o) => o.I.avisos.length);
+    return '<div class="bgp">' + tira +
+      bgGrafica(c, sens, v, win, cl) +
+      '<div class="chips" style="margin-top:6px">' + BG_MODOS.map((m) => '<button class="chip" data-act="bg-modo" data-a="' + esc(c.id) + '" data-v="' + m[0] + '" aria-pressed="' + (v.modo === m[0]) + '">' + m[1] + '</button>').join('') + '</div>' +
+      '<div class="bgn"><button class="link" data-act="bg-nav" data-a="' + esc(c.id) + '" data-d="1">← Anterior</button><span class="seg" style="display:inline-grid;grid-template-columns:1fr 1fr;width:120px"><button class="chip" data-act="bg-dias" data-a="' + esc(c.id) + '" data-v="7" aria-pressed="' + (v.dias === 7) + '">7 d</button><button class="chip" data-act="bg-dias" data-a="' + esc(c.id) + '" data-v="30" aria-pressed="' + (v.dias === 30) + '">30 d</button></span><button class="link" data-act="bg-nav" data-a="' + esc(c.id) + '" data-d="-1"' + (v.off ? '' : ' disabled style="opacity:.35"') + '>Siguiente →</button></div>' +
+      (avs.length ? avs.map((o) => '<p>' + pill({ k: 'late', t: o.s.nombre + ': ' + o.I.avisos[0] }) + '</p>').join('') : '') +
+      '<div class="bgcs">' + sens.map((s) => bgTarjeta(s, 0, pesoS.indexOf(s))).join('') + '</div></div>';
   }
 
   /* ---------- Finanzas: ingresos (ventas) ---------- */
@@ -2858,6 +2985,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (a === 'filtro-ped') { S.filtroPed = d.v; render(); }
     else if (a === 'new-lote') openSheet({ type: 'lote' });
     else if (a === 'edit-sen') openSheet({ type: 'sen', id: d.id });
+    else if (a === 'bg-modo' || a === 'bg-dias' || a === 'bg-nav') {
+      const v = bgV(d.a);
+      if (a === 'bg-modo') v.modo = d.v; else if (a === 'bg-dias') { v.dias = Number(d.v); v.off = 0; } else v.off = Math.max(0, v.off + Number(d.d));
+      if (S.sheet && S.sheet.type === 'detalle') { const pn = sheetEl.querySelector('.panel'), y = pn ? pn.scrollTop : 0; drawSheet(false); const p2 = sheetEl.querySelector('.panel'); if (p2) p2.scrollTop = y; } else render();
+    }
     else if (a === 'ask-del-sen') confirmZone('Se elimina el sensor y todas sus lecturas importadas. En BeeGuard no se borra nada.', 'del-sen', d.id);
     else if (a === 'del-sen') borrarSen(d.id);
     else if (a === 'open-lote') openSheet({ type: 'lote', id: d.id });
