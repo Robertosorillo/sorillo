@@ -1,6 +1,6 @@
 {
-  "name": "SORILLO Demo",
-  "short_name": "SORILLO Demo",
+  "name": "SORILLO",
+  "short_name": "SORILLO",
   "description": "Cuaderno de campo de la explotación apícola",
   "lang": "es",
   "start_url": "./",
