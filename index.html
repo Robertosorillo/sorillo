@@ -283,6 +283,8 @@ textarea { min-height: 84px; resize: vertical; }
 .qty-in { width: 66px; min-height: 44px; padding: 4px 6px; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .qgroup small { font-size: .72rem; font-weight: 600; color: var(--ink-2); }
 .item-main .det { font-size: .9rem; font-weight: 600; color: var(--ink-2); }
+.iafab { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 25; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--ink, #1f1b16); color: #fff; font-size: 1.6rem; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
+.iafab[hidden] { display: none; }
 .add-line { width: 100%; border-style: dashed; color: var(--accent-text); }
 .step { flex: none; width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); font-size: .95rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .step:active { background: var(--surface-2); }
@@ -308,7 +310,7 @@ details.est + details.est { margin-top: 8px; }
 <nav class="nav" aria-label="Secciones">
   <div class="nav-in" id="nav-in"></div>
 </nav>
-<button class="add" data-act="add" aria-label="Nuevo registro" hidden>+</button>
+<button class="add" data-act="add" aria-label="Nuevo registro" hidden>+</button><button class="iafab" data-act="iag-open" aria-label="Asistente SORILLO: pregúntame lo que quieras" title="Asistente SORILLO" hidden>🤖</button>
 <div id="sheet" class="sheet" hidden></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
@@ -325,6 +327,8 @@ window.SORILLO_FB = {
   appId: "1:538474976428:web:2b608525db76acd7e5bb09"
 };
 /* Clave de reCAPTCHA (App Check con Fraud Defense / reCAPTCHA Enterprise). Vacía = asistente IA desactivado. */
+/* Motor del asistente: vacío = Gemini (Firebase, gratis). Con la dirección de un servidor intermedio, usa Claude. */
+window.SORILLO_CLAUDE_URL = '';
 window.SORILLO_RECAPTCHA = '6Lf8yjAuAAAAABS1q9I304_nBqLqQ1-SZeZt8R0G';
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 </script>
@@ -1050,7 +1054,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       (S.ia.busy ? '<div class="iam ia"><p class="muted">Pensando el plan… (consultando el tiempo de cada colmenar)</p></div>' : '');
   }
   function iaSeccion() {
-    const ok = window.SORILLO_IA && window.SORILLO_IA.listo;
+    const ok = iaListo();
     return '<section class="sect" id="ia-sec"><div class="sect-head"><h3>🤖 Asistente para planificar</h3>' + (S.ia.msgs.length ? '<button class="link" data-act="ia-new">Nueva conversación</button>' : '') + '</div>' +
       (ok ? '<div class="ialog" id="ia-log">' + iaLogHtml() + '</div>' +
         '<form data-form="ia" class="iaf" novalidate><textarea id="ia-in" rows="3" placeholder="Ej.: El martes y el miércoles quiero revisar y alimentar todos los colmenares de Salamanca…">' + esc(S.ia.draft) + '</textarea>' +
@@ -1073,13 +1077,119 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       const ctx = await iaContexto();
       const hist = S.ia.msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
       hist[hist.length - 1].parts[0].text = 'DATOS DE LA EXPLOTACIÓN Y DEL TIEMPO (actualizados ahora):\n' + ctx + '\n\nPETICIÓN:\n' + txt;
-      const r = await window.SORILLO_IA.chat(hist, IA_SISTEMA);
+      const r = await iaMotor(hist, IA_SISTEMA);
       S.ia.msgs.push({ role: 'model', text: r || 'No he recibido respuesta. Prueba otra vez.' });
     } catch (e) {
       const c = String((e && (e.code || e.message)) || '');
       S.ia.msgs.push({ role: 'model', text: /app-check|appcheck|recaptcha/i.test(c) ? '⚠️ No se pudo verificar la app (App Check). Revisa la configuración de reCAPTCHA en Firebase.' : /quota|429|resource.?exhausted/i.test(c) ? '⚠️ Se ha alcanzado el límite gratuito de consultas por ahora. Espera un rato y vuelve a probar.' : '⚠️ No se pudo consultar a la IA (' + c.slice(0, 120) + '). Comprueba la conexión y prueba otra vez.' });
     }
     S.ia.busy = false; iaPintar();
+  }
+  /* ---------- motor de IA: Gemini (Firebase) o, si se configura, Claude a través de un servidor intermedio ---------- */
+  async function iaMotor(hist, sistema) {
+    const url = window.SORILLO_CLAUDE_URL;
+    if (url) {
+      let tok = '';
+      try { if (window.firebase && firebase.auth && firebase.auth().currentUser) tok = await firebase.auth().currentUser.getIdToken(); } catch (e) { /* sin sesión */ }
+      const r = await fetch(url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, tok ? { Authorization: 'Bearer ' + tok } : {}),
+        body: JSON.stringify({ system: sistema, messages: hist.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.parts[0].text })) }) });
+      if (!r.ok) throw new Error('motor ' + r.status);
+      const j = await r.json(); return j.text || '';
+    }
+    return window.SORILLO_IA.chat(hist, sistema);
+  }
+  const iaListo = () => !!(window.SORILLO_CLAUDE_URL || (window.SORILLO_IA && window.SORILLO_IA.listo));
+  const iaError = (e) => { const c = String((e && (e.code || e.message)) || '');
+    return /app-check|appcheck|recaptcha/i.test(c) ? '⚠️ No se pudo verificar la app (App Check). Revisa la configuración de reCAPTCHA en Firebase.' : /quota|429|resource.?exhausted/i.test(c) ? '⚠️ Se ha alcanzado el límite gratuito de consultas por ahora. Espera un rato y vuelve a probar.' : '⚠️ No se pudo contactar con el asistente (' + esc(c.slice(0, 120)) + '). Comprueba la conexión y vuelve a probar.'; };
+
+  /* ---------- asistente general: pregunta lo que quieras desde cualquier pantalla ---------- */
+  S.iag = { msgs: [], busy: false, draft: '' };
+  const IAG_EJEMPLOS_CAMPO = ['¿Qué colmenares llevan más días sin revisar?', '¿Dónde he tratado contra la varroa y cuándo se puede retirar?', '¿Cuántas bajas llevamos este invierno y por qué?', '¿Qué me queda de alimento en el almacén?'];
+  const IAG_EJEMPLOS = IAG_EJEMPLOS_CAMPO.concat(['¿Qué pedidos están abiertos y tengo tarros para servirlos?', '¿Qué miel hemos vendido más este año?', '¿Qué lotes de bidón quedan por envasar?', '¿Cuánto hemos gastado este mes y en qué?']);
+  function iagContexto() {
+    const L = [], hoyD = new Date(), y = anioAct();
+    const n2 = (v) => fmtN(Math.round((Number(v) || 0) * 100) / 100);
+    L.push('HOY: ' + hoy() + ', ' + hoyD.toLocaleDateString('es-ES', { weekday: 'long' }) + ', ' + pad(hoyD.getHours()) + ':' + pad(hoyD.getMinutes()) + ' (hora de España).');
+    L.push('Total de colmenas de la explotación: ' + ((S.cfg && S.cfg.total) || '?') + '.');
+    /* asentamientos */
+    const ult = (c, t) => regs().find((r) => r.asentamientoId === c.id && r.tipo === t);
+    L.push('\nASENTAMIENTOS (' + S.col.length + '):');
+    S.col.slice().sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999)).forEach((c) => {
+      const i = ult(c, 'inspeccion'), t = ult(c, 'tratamiento'), ri = !S.soloCampo && rentaInfo(c);
+      L.push('- ' + nombreNum(c) + ' [' + (c.zona || '') + ']: ' + (Number(c.colmenas) || 0) + ' colmenas; ' + APROV[c.aprov || 'miel'] + (c.floracion ? '; floración ' + c.floracion : '') + (c.llegada ? '; llegaron ' + c.llegada : '') +
+        '; última inspección ' + (i ? i.fecha + ' (' + textoReg(i) + ')' : 'ninguna') + '; último tratamiento ' + (t ? t.fecha + ' (' + textoReg(t) + ')' : 'ninguno') +
+        (ri ? '; renta ' + ri.txt + (c.vence ? ', vence ' + c.vence : '') : '') + (senTxt(c) ? '; sensores BeeGuard: ' + senTxt(c) : '') + (c.notas ? '; notas: ' + c.notas : ''));
+    });
+    const b = balance();
+    if (b) L.push('Balance de invernada desde ' + b.inicio + ': entraron ' + b.entraron + ', bajas ' + b.bajas + ' (' + fmtPct(b.pct) + '), viven ' + b.viven + '. Motivos: ' + b.motivos.map((m) => m.k + ' ' + m.n).join(', ') + '.');
+    /* cuaderno de campo: últimos 120 días */
+    const lim = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+    const rr = regs().filter((r) => (r.fecha || '') >= lim).slice(0, 150);
+    L.push('\nCUADERNO DE CAMPO (últimos 120 días, ' + rr.length + ' registros, más recientes primero):');
+    rr.forEach((r) => L.push(r.fecha + ' · ' + (r.asentamientoNombre || '') + ' · ' + (TIPOS[r.tipo] || r.tipo) + ': ' + textoReg(r) + (r.notas ? ' (' + r.notas + ')' : '')));
+    /* almacén y bidones */
+    const art = (x) => x.nombre + (x.detalle ? ' (' + x.detalle + ')' : '') + ': ' + (sinContar(x) ? 'sin contar' : n2(x.cantidad) + ' ' + (x.unidad || 'ud')) + (Number(x.minimo) > 0 ? ' [mínimo ' + x.minimo + ']' : '');
+    L.push('\nALMACÉN DE CAMPO: ' + S.alm.filter((x) => secAlm(x) !== 'envasadora').map(art).join('; '));
+    L.push('\nBIDONES (nº · lote · producto · variedad · kg · estado · procedencia):');
+    S.prd.slice().sort(numCmp).forEach((x) => L.push('- nº ' + x.num + ' · lote ' + loteDe(x) + ' · ' + (prodPrd(x) === 'polen' ? 'polen' : 'miel') + ' · ' + varPrd(x) + ' · ' + n2(x.kg) + ' kg · ' + EST_PRD[estPrd(x)][0] + (x.origen ? ' · ' + x.origen : '')));
+    if (!S.soloCampo) {
+      /* envasadora */
+      L.push('\nMATERIAL DE ENVASADO: ' + S.alm.filter((x) => secAlm(x) === 'envasadora').map(art).join('; '));
+      L.push('\nFORMATOS: ' + S.fmt.slice().sort(ordFmt).map((f) => f.nombre + (f.pvp != null ? ' (' + f.pvp + ' €)' : '')).join('; '));
+      L.push('\nEXISTENCIAS DE TARROS LLENOS: ' + S.tar.filter((t) => Number(t.cantidad) > 0).map((t) => { const f = findFmt(t.formatoId); return (f ? f.nombre : '?') + ' ' + varTxt(t.variedad) + ': ' + t.cantidad; }).join('; '));
+      const le = S.env.slice().sort((a, c) => String(c.fecha || '').localeCompare(String(a.fecha || ''))).slice(0, 60);
+      L.push('\nLOTES DE ENVASADO (últimos ' + le.length + '): ' + le.map((e) => { const f = findFmt(e.formatoId); return e.fecha + ' ' + (f ? f.nombre : e.formatoNom || '') + ' ' + varTxt(e.variedad) + ' ×' + e.n + ' (lote ' + (e.lote || '-') + (e.bidonNum ? ', bidón ' + e.bidonNum : '') + ')'; }).join('; '));
+      const lp = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+      const pp = S.ped.filter((p) => pedAbierto(p) || (p.fecha || '') >= lp).sort((a, c) => String(c.fecha || '').localeCompare(String(a.fecha || ''))).slice(0, 120);
+      L.push('\nPEDIDOS (abiertos y del último año, ' + pp.length + '):');
+      pp.forEach((p) => L.push('- nº ' + p.num + ' · ' + p.fecha + ' · ' + (p.cliente || 'sin cliente') + (p.canal ? ' · ' + p.canal : '') + ' · ' + estPed(p.estado)[1] + (p.cobrado ? ' · cobrado' : ' · sin cobrar') + ' · ' + n2(totalPed(p)) + ' € · ' + (p.lineas || []).map(lineaTxt).join(', ') + (p.recordatorio ? ' · recordatorio ' + p.recordatorio : '')));
+      /* finanzas: último año */
+      const gg = S.gas.filter((g) => (g.fecha || '') >= lp), ii = S.ing.filter((g) => (g.fecha || '') >= lp);
+      L.push('\nGASTOS DEL ÚLTIMO AÑO (' + gg.length + '): ' + gg.sort((a, c) => String(c.fecha || '').localeCompare(String(a.fecha || ''))).slice(0, 120).map((g) => g.fecha + ' ' + (g.concepto || '') + ' [' + (g.categoria || '') + '] ' + n2(g.importe) + ' €' + (g.tipo === 'fijo' ? ' (fijo ' + (g.frecuencia || '') + ')' : '')).join('; '));
+      L.push('\nINGRESOS DEL ÚLTIMO AÑO (' + ii.length + '): ' + ii.sort((a, c) => String(c.fecha || '').localeCompare(String(a.fecha || ''))).slice(0, 120).map((g) => g.fecha + ' ' + (g.producto || '') + ' ' + (g.variedad || '') + ' · ' + (g.cliente || '') + ' · ' + n2(g.cantidad) + ' × ' + n2(g.precio) + ' €').join('; '));
+      L.push('\nSUBVENCIONES: ' + S.sub.map((x) => (x.nombre || '') + ' (' + (x.estado || '') + ', ' + n2(x.importe) + ' €' + (x.fechaCobro ? ', cobro ' + x.fechaCobro : '') + ')').join('; '));
+    }
+    return L.join('\n');
+  }
+  const IAG_SISTEMA = 'Eres el asistente de SORILLO, una app de gestión de una explotación apícola profesional española (SORILLO Miel Artesanal) con colmenares en Salamanca y Extremadura y una envasadora propia. ' +
+    'Respondes cualquier pregunta del equipo usando los DATOS DE LA APP que recibes con cada pregunta: asentamientos, cuaderno de campo, almacén, bidones con su lote' + '%%EXTRA%%' + '. También puedes ayudar con dudas de apicultura en general, redactar mensajes o hacer cálculos.\n' +
+    'Normas:\n- Español de España, claro y breve, como un compañero que conoce la explotación. Ve al grano.\n' +
+    '- Para preguntas sobre la explotación, usa solo los datos recibidos; si algo no está en los datos, dilo y no lo inventes. Indica fechas y cifras concretas.\n' +
+    '- No puedes cambiar datos de la app: si te piden anotar o modificar algo, explica en qué pantalla de SORILLO se hace.\n' +
+    '- En temas sanitarios (tratamientos, medicamentos) recuerda seguir la etiqueta y la normativa, y consultar al veterinario si procede.\n' +
+    '- Puedes usar listas y tablas sencillas. Para planificar rutas con el tiempo de cada colmenar, recomienda el «Planificador con IA» de la pestaña Asentamientos.';
+  const iagSistema = () => IAG_SISTEMA.replace('%%EXTRA%%', S.soloCampo ? '' : ', material de envasado, formatos, existencias de tarros, lotes, pedidos, gastos, ingresos y subvenciones');
+  function iagLogHtml() {
+    if (!S.iag.msgs.length) return '<p class="hint">Pregúntame lo que quieras sobre la explotación: colmenares, revisiones, tratamientos, almacén, bidones' + (S.soloCampo ? '' : ', envasado, pedidos, ventas o gastos') + '. También dudas de apicultura o ayuda para redactar un mensaje.</p>' +
+      '<div class="chips">' + (S.soloCampo ? IAG_EJEMPLOS_CAMPO : IAG_EJEMPLOS).map((t, i) => '<button class="chip" data-act="iag-ej" data-i="' + i + '">' + esc(t) + '</button>').join('') + '</div>';
+    return S.iag.msgs.map((m) => '<div class="iam ' + (m.role === 'user' ? 'yo' : 'ia') + '">' + (m.role === 'user' ? esc(m.text).replace(/\n/g, '<br>') : iaMd(m.text)) + '</div>').join('') +
+      (S.iag.busy ? '<div class="iam ia"><p class="muted">Pensando…</p></div>' : '');
+  }
+  function sheetIag() {
+    return head('🤖 Asistente SORILLO', 'Pregúntame lo que quieras') +
+      (iaListo() ? '<div class="ialog" id="iag-log">' + iagLogHtml() + '</div>' +
+        '<form data-form="iag" class="iaf" novalidate><textarea id="iag-in" rows="3" placeholder="Escribe tu pregunta…">' + esc(S.iag.draft) + '</textarea>' +
+        '<div class="actions"><button class="btn primary" type="submit" id="iag-btn"' + (S.iag.busy ? ' disabled' : '') + '>Enviar</button>' + (S.iag.msgs.length ? '<button class="btn" type="button" data-act="iag-new">Nueva conversación</button>' : '') + '</div></form>' +
+        '<p class="hint">Responde una IA (' + (window.SORILLO_CLAUDE_URL ? 'Claude, de Anthropic' : 'Gemini, de Google') + ') con los datos de la app. Puede equivocarse: comprueba lo importante.</p>'
+        : '<p class="hint">El asistente todavía no está activado en esta instalación.</p>');
+  }
+  function iagPintar() {
+    const l = document.getElementById('iag-log'); if (l) { l.innerHTML = iagLogHtml(); l.scrollTop = l.scrollHeight; }
+    const b = document.getElementById('iag-btn'); if (b) b.disabled = S.iag.busy;
+  }
+  async function iagEnviar(txt) {
+    txt = String(txt || '').trim(); if (!txt || S.iag.busy) return;
+    if (navigator.onLine === false) { toast('Sin conexión: el asistente necesita internet'); return; }
+    S.iag.msgs.push({ role: 'user', text: txt }); S.iag.draft = ''; S.iag.busy = true;
+    const ta = document.getElementById('iag-in'); if (ta) ta.value = '';
+    iagPintar();
+    try {
+      const hist = S.iag.msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
+      hist[hist.length - 1].parts[0].text = 'DATOS DE LA APP (actualizados ahora):\n' + iagContexto() + '\n\nPREGUNTA:\n' + txt;
+      const r = await iaMotor(hist, iagSistema());
+      S.iag.msgs.push({ role: 'model', text: r || 'No he recibido respuesta. Prueba otra vez.' });
+    } catch (e) { S.iag.msgs.push({ role: 'model', text: iaError(e) }); }
+    S.iag.busy = false; iagPintar();
   }
   function sheetRuta() {
     const R = rutaCalc();
@@ -1754,10 +1864,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (S.soloCampo && (S.modo === 'env' || secOf(S.view) === 'finanzas')) { S.modo = 'campo'; S.view = 'resumen'; }
     const env = S.modo === 'env', sec = env ? 'env' : secOf(S.view);
     pintarNav();
-    if (env) { appEl.innerHTML = modoBar() + viewEnvasadora(); const ab0 = document.querySelector('.add'); if (ab0) ab0.hidden = true; return; }
+    if (env) { appEl.innerHTML = modoBar() + viewEnvasadora(); const ab0 = document.querySelector('.add'); if (ab0) ab0.hidden = true; const fb0 = document.querySelector('.iafab'); if (fb0) fb0.hidden = !iaListo(); return; }
     appEl.innerHTML = modoBar() + (sec === 'asent' ? viewAsent() : sec === 'almacen' ? viewAlmacen() : sec === 'finanzas' ? viewFinanzas() : subnav() + (S.view === 'asentamientos' ? viewAsentamientos() : S.view === 'diario' ? viewDiario() : S.view === 'movimientos' ? viewMovimientos() : viewResumen()));
     document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.sec === sec) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
     const ab = document.querySelector('.add'); if (ab) ab.hidden = sec !== 'cuaderno';
+    const fab = document.querySelector('.iafab'); if (fab) fab.hidden = !iaListo();
     const tb = document.querySelector('.tab[data-sec="asent"]');
     if (tb) { const n = alertasRenta().length; tb.classList.toggle('alerta', n > 0); tb.setAttribute('aria-label', n ? 'Asentamientos, ' + n + ' ' + plural(n, 'pago por vencer', 'pagos por vencer') : 'Asentamientos'); }
   }
@@ -1789,6 +1900,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (s.type === 'total') body = sheetTotal();
     else if (s.type === 'pin') body = sheetPin(s);
     else if (s.type === 'eqcampo') body = sheetEqCampo();
+    else if (s.type === 'iag') body = sheetIag();
     else if (s.type === 'prd') body = sheetPrd(s);
     else if (s.type === 'inicio') body = sheetInicio();
     else if (s.type === 'pago') body = sheetPago(s);
@@ -3184,6 +3296,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     }
     else if (a === 'exportar') exportarDatos();
     else if (a === 'eq-campo') openSheet({ type: 'eqcampo' });
+    else if (a === 'iag-open') openSheet({ type: 'iag' });
+    else if (a === 'iag-ej') iagEnviar((S.soloCampo ? IAG_EJEMPLOS_CAMPO : IAG_EJEMPLOS)[Number(d.i)]);
+    else if (a === 'iag-new') { S.iag.msgs = []; S.iag.draft = ''; drawSheet(false); }
     else if (a === 'eq-quitar') { const l = (S.eqCampo || []).filter((x) => x !== d.v); guardarEqCampo(l).then(() => { S.eqCampo = l; drawSheet(false); }); }
     else if (a === 'copia') copiaSeguridad();
     else if (a === 'ruta') openSheet({ type: 'ruta' });
@@ -3289,7 +3404,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target, k = f.dataset.form;
-    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'sen-nuevos') guardarSenNuevos(); else if (k === 'sen') guardarSen(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'valcol') guardarValCol(); else if (k === 'eqcampo') {
+    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'sen-nuevos') guardarSenNuevos(); else if (k === 'sen') guardarSen(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'iag') iagEnviar(val('iag-in')); else if (k === 'valcol') guardarValCol(); else if (k === 'eqcampo') {
       const m = String(val('eq-mail') || '').trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) showErr('eq-err', 'Escribe un correo válido.');
       else { const l = Array.from(new Set((S.eqCampo || []).concat([m]))); guardarEqCampo(l).then(() => { S.eqCampo = l; drawSheet(false); }); }
@@ -3381,6 +3496,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   document.addEventListener('input', (e) => {
     const t = e.target;
     if (t && t.id === 'ia-in') S.ia.draft = t.value;
+    if (t && t.id === 'iag-in') S.iag.draft = t.value;
     if (t && (t.id === 'l-n' || t.id === 'l-var')) loteResumen();
     if (t && t.id === 'l-lote') t.dataset.tocado = '1';
     if (t && t.closest && t.closest('#p-lineas')) { const f0 = t.closest('form'); if (f0) delete f0.dataset.forzar; pedTotalVivo(); }
