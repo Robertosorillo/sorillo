@@ -375,7 +375,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const $ = (s) => document.querySelector(s);
   const KEY_MODO = 'sorillo-modo';
   try { S.modo = localStorage.getItem(KEY_MODO) === 'env' ? 'env' : 'campo'; } catch (e) { S.modo = 'campo'; }
-  function ponerModo(m) { S.modo = m === 'env' ? 'env' : 'campo'; try { localStorage.setItem(KEY_MODO, S.modo); } catch (e) { /* sin almacenamiento */ } }
+  /* Colecciones que no ve un usuario «solo de campo» (finanzas y envasadora). */
+  const SOLO_COMPLETO = ['gastos', 'ingresos', 'subvenciones', 'patrimonio', 'formatos', 'tarros', 'envasados', 'pedidos'];
+  function ponerModo(m) { if (S.soloCampo) m = 'campo';
+    S.modo = m === 'env' ? 'env' : 'campo'; try { localStorage.setItem(KEY_MODO, S.modo); } catch (e) { /* sin almacenamiento */ } }
   const appEl = $('#app'), sheetEl = $('#sheet'), toastEl = $('#toast');
 
   /* ---------- utilidades ---------- */
@@ -490,7 +493,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     let data = { asentamientos: {}, registros: {}, config: {}, almacen: {}, gastos: {}, ingresos: {}, subvenciones: {}, tiempo: {}, productos: {}, patrimonio: {}, formatos: {}, tarros: {}, envasados: {}, pedidos: {}, sensores: {}, lecturas: {} };
     let queue = [];
     let hasCache = false, db = null, flushing = false, retry = null;
-    const live = {}, subs = {};
+    const live = {}, subs = {}, excl = {};
     try {
       const raw = localStorage.getItem(KEY_DATOS);
       if (raw) { data = Object.assign(data, JSON.parse(raw)); hasCache = true; }
@@ -523,7 +526,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       set: (c, id, d) => push({ op: 'set', c, id, d: JSON.parse(JSON.stringify(d)) }),
       update: (c, id, d) => push({ op: 'update', c, id, d: JSON.parse(JSON.stringify(d)) }),
       del: (c, id) => push({ op: 'del', c, id }),
-      attach, flush
+      attach, flush,
+      /* Usuarios solo de campo: no escuchan las colecciones que no pueden leer. */
+      excluir(l) { l.forEach((c) => { excl[c] = true; live[c] = true; data[c] = {}; queue = queue.filter((o) => o.c !== c); }); save(); }
     };
     const status = () => { if (api.onStatus) api.onStatus(st()); };
     function push(o) {
@@ -544,6 +549,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
             else await timeout(ref.delete(), 15000);
           } catch (e) {
             const perdido = o.op === 'update' && e && (e.code === 'not-found' || /not.?found/i.test(String(e.message)));
+            /* sin permiso (usuario solo de campo): se descarta para no bloquear la cola */
+            if (e && e.code === 'permission-denied') { queue.shift(); save(); emit(o.c); continue; }
             if (!perdido) throw e;
           }
           applyOp(data[o.c], o); queue.shift(); save(); status();
@@ -564,7 +571,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     }
     function attach(d) {
       if (db) return;
-      db = d; COLS.forEach(listen); status();
+      db = d; COLS.filter((c) => !excl[c]).forEach(listen); status();
     }
     return api;
   }
@@ -1147,7 +1154,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
         : '<h3>Toca revisar</h3><p class="hint">Todos los asentamientos tienen una inspección de los últimos ' + LIM_OK + ' días.</p>') + '</section>' : '') +
       (true ? '<section class="sect"><h3>Temporada ' + y + '</h3><dl class="facts-row"><div class="tap" role="button" tabindex="0" data-act="open-prod" data-p="miel"><dt>Miel ›</dt><dd>' + fmtKg(kgMiel) + ' <small>kg</small></dd></div><div class="tap" role="button" tabindex="0" data-act="open-prod" data-p="polen"><dt>Polen seco ›</dt><dd>' + fmtKg(kgPolen) + ' <small>kg</small></dd></div><div class="tap" role="button" tabindex="0" data-act="open-prod" data-p="polenfresco"><dt>Polen fresco ›</dt><dd>' + fmtKg(kgPolenF) + ' <small>kg</small></dd></div><div><dt>Bajas ' + y + '</dt><dd>' + nBajas + '</dd></div><div class="tap" role="button" tabindex="0" data-act="edit-temp"><dt>Enjambres ›</dt><dd>' + nEnj + '</dd></div><div class="tap" role="button" tabindex="0" data-act="edit-temp"><dt>Inspecciones ›</dt><dd>' + nIns + '</dd></div><div class="tap" role="button" tabindex="0" data-act="edit-temp"><dt>Tratamientos ›</dt><dd>' + nTra + '</dd></div></dl><p class="hint">Toca Miel, Polen, Enjambres, Inspecciones o Tratamientos para apuntar o corregir los datos de la temporada.</p></section>' : '') +
       (S.reg.length ? '<section class="sect"><div class="sect-head"><h3>Últimos registros</h3><button class="link" data-act="nav" data-view="diario">Ver diario</button></div><div class="list">' + regs().slice(0, 3).map(filaReg).join('') + '</div></section>' : '') +
-      '<section class="sect"><h3>Datos</h3><p class="hint">Descarga un Excel con todo lo anotado (asentamientos, registros, cosecha, almacén, gastos, ingresos y subvenciones) para compartirlo con tu equipo.</p><button class="btn" data-act="exportar">⬇ Exportar datos a Excel</button><div class="actions" style="margin-top:10px"><button class="btn" data-act="copia">💾 Copia de seguridad</button><button class="btn" data-act="restaurar">Restaurar copia</button></div><input type="file" id="f-restaurar" accept=".json,application/json" hidden>' + (S.user ? '<p class="hint" style="margin-top:12px">Conectado como <b>' + esc(S.user.email || '') + '</b> · <button class="link" data-act="logout">Cerrar sesión</button></p>' : '') + '</section>' +
+      (S.soloCampo ? '<section class="sect"><h3>Tu cuenta</h3><p class="hint">Conectado como <b>' + esc(S.user ? S.user.email || '' : '') + '</b> (acceso al cuaderno de campo) · <button class="link" data-act="logout">Cerrar sesión</button></p></section>' :
+      '<section class="sect"><h3>Datos</h3><p class="hint">Descarga un Excel con todo lo anotado (asentamientos, registros, cosecha, almacén, gastos, ingresos y subvenciones) para compartirlo con tu equipo.</p><button class="btn" data-act="exportar">⬇ Exportar datos a Excel</button><div class="actions" style="margin-top:10px"><button class="btn" data-act="copia">💾 Copia de seguridad</button><button class="btn" data-act="restaurar">Restaurar copia</button></div><input type="file" id="f-restaurar" accept=".json,application/json" hidden>' + (S.user ? '<p class="hint" style="margin-top:12px">Conectado como <b>' + esc(S.user.email || '') + '</b> · <button class="link" data-act="logout">Cerrar sesión</button></p>' : '') + (FB ? '<div class="actions" style="margin-top:10px"><button class="btn" data-act="eq-campo">👷 Usuarios solo de campo' + ((S.eqCampo || []).length ? ' (' + S.eqCampo.length + ')' : '') + '</button></div>' : '') + '</section>') +
       '</div>';
   }
 
@@ -1273,7 +1281,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const instalada = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
     if (!oculto && !instalada) h += '<div class="notice"><span>Para tenerla en el móvil: abre esta página en el navegador y elige «Añadir a pantalla de inicio».</span><button class="btn" data-act="ocultar-instalar">Entendido</button></div>';
     if (hayEj) h += '<div class="notice"><span>Hay datos de ejemplo para que veas cómo funciona.</span><button class="btn" data-act="borrar-ejemplos">Borrar ejemplos</button></div>';
-    const as = S.loaded.sen && S.loaded.lec ? avisosSen() : [];
+    const as = !S.soloCampo && S.loaded.sen && S.loaded.lec ? avisosSen() : [];
     if (as.length) h = '<div class="notice"><span><b>📡 ' + as.length + ' ' + plural(as.length, 'aviso de BeeGuard', 'avisos de BeeGuard') + ':</b> ' + esc(as.slice(0, 2).map((o) => o.s.nombre + ' — ' + o.I.avisos[0]).join(' · ')) + '</span><button class="btn" data-act="sec" data-sec="asent">Ver</button></div>' + h;
     const al = alertasRenta();
     if (al.length) h = '<div class="notice"><span><b>' + al.length + ' ' + plural(al.length, 'pago de renta', 'pagos de renta') + '</b> por vencer o vencidos: ' + esc(al.slice(0, 2).map((x) => nombreNum(x.c) + ' (' + x.i.t.toLowerCase() + ')').join(', ')) + (al.length > 2 ? '…' : '') + '</span><button class="btn" data-act="sec" data-sec="asent">Ver</button></div>' + h;
@@ -1426,11 +1434,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const lista = (l, k) => '<div class="list">' + l.map(filaAlm).join('') + '</div>' + '<button class="btn add-line" data-act="new-alm"' + ds + ' data-cat="' + k + '">+ Añadir ' + (k === 'alimento' ? 'otro alimento' : 'a ' + (CATS.find((c) => c[0] === k) || [0, 'esta sección'])[1].toLowerCase()) + '</button>';
     return '<div class="stack">' + cab +
       '<div class="actions"><button class="btn primary" data-act="new-alm"' + ds + '>Añadir artículo</button>' + (env ? '<button class="btn" data-act="env-tab" data-v="formatos">Formatos ›</button>' : '') + '</div>' +
-      '<dl class="facts-row c2">' + cats.map((c) => '<div><dt>' + esc(c.t) + '</dt><dd>' + totTxt(c.l) + '</dd></div>').join('') + '</dl>' +
+      (env ? '' : '<dl class="facts-row c2">' + cats.map((c) => '<div><dt>' + esc(c.t) + '</dt><dd>' + totTxt(c.l) + '</dd></div>').join('') + '</dl>') +
       (bajos ? '<p class="hint">' + bajos + ' ' + plural(bajos, 'artículo con poco stock o agotado.', 'artículos con poco stock o agotados.') + '</p>' : '') +
       '<div class="chips" role="group" aria-label="Filtrar por tipo de material"><button class="chip" data-act="filtro-alm" data-v="todos" aria-pressed="' + (f === 'todos') + '">Todo</button>' + cats.map((c) => '<button class="chip" data-act="filtro-alm" data-v="' + c.k + '" aria-pressed="' + (f === c.k) + '">' + esc(c.t) + '</button>').join('') + '</div>' +
       (f === 'todos'
-        ? cats.map((c) => '<section class="sect"><div class="catline"><h3>' + esc(c.t) + '</h3><span class="muted">' + totTxt(c.l) + '</span></div>' + lista(c.l, c.k) + '</section>').join('')
+        ? cats.map((c) => '<section class="sect"><div class="catline"><h3>' + esc(c.t) + '</h3>' + (env ? '' : '<span class="muted">' + totTxt(c.l) + '</span>') + '</div>' + lista(c.l, c.k) + '</section>').join('')
         : lista(cats.find((c) => c.k === f).l, f)) +
       '<section class="sect"><div class="catline"><h3>Añadir al almacén</h3></div><p class="hint">¿Algo que no está en la lista? Apúntalo a mano con su nombre, cantidad y unidad.</p><button class="btn primary" data-act="new-alm"' + ds + '>+ Añadir artículo nuevo</button></section>' +
       '<p class="hint">Escribe la cantidad directamente en cada artículo o usa los botones + y −. Toca el nombre para cambiar el detalle, el paso de los botones o el aviso de poco stock.</p>' +
@@ -1653,7 +1661,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     const t = until === 0 ? 'Vence hoy' : until === 1 ? 'Vence mañana' : 'Vence en ' + until + ' días';
     return Object.assign(base, { until, k: until <= aviso ? 'warn' : 'ok', t });
   }
-  const alertasRenta = () => S.col.map((c) => ({ c, i: rentaInfo(c) })).filter((x) => x.i && (x.i.k === 'late' || x.i.k === 'warn')).sort((a, b) => a.i.until - b.i.until);
+  /* Los usuarios solo de campo no reciben avisos de ningún tipo. */
+  const alertasRenta = () => S.soloCampo ? [] : S.col.map((c) => ({ c, i: rentaInfo(c) })).filter((x) => x.i && (x.i.k === 'late' || x.i.k === 'warn')).sort((a, b) => a.i.until - b.i.until);
   const ZONAS = [['extremadura', 'Extremadura'], ['salamanca', 'Salamanca']];
   const zonaOf = (c) => ZONAS.some((z) => z[0] === c.zona) ? c.zona : 'sin';
   const zonaNom = (k) => { const z = ZONAS.find((x) => x[0] === k); return z ? z[1] : 'Sin zona'; };
@@ -1713,10 +1722,20 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     if (ok) closeSheet();
   }
 
+  /* Usuarios que solo ven el cuaderno de campo, asentamientos y almacén (sin finanzas ni envasadora). */
+  function sheetEqCampo() {
+    const l = S.eqCampo || [];
+    return head('Usuarios solo de campo', 'Ven Cuaderno de campo, Asentamientos y Almacén') +
+      '<p class="hint">Estas personas entran en SORILLO con su cuenta de Google y solo ven el cuaderno de campo, los asentamientos y el almacén. No ven Finanzas ni la Envasadora, y la base de datos tampoco les deja leer esos datos.</p>' +
+      (l.length ? '<div class="list">' + l.map((e) => '<div class="item"><span class="item-main"><b>' + esc(e) + '</b></span><button class="btn" data-act="eq-quitar" data-v="' + esc(e) + '">Quitar</button></div>').join('') + '</div>' : '<p class="muted">Todavía no hay ninguno.</p>') +
+      '<form data-form="eqcampo" novalidate>' + fld('eq-mail', 'Añadir correo de Google', '<input id="eq-mail" type="email" autocomplete="off" placeholder="nombre@gmail.com">') +
+      '<p class="err" id="eq-err" hidden></p><button class="btn primary" type="submit">Añadir</button></form>';
+  }
+  async function guardarEqCampo(lista) { return run(() => S.store.set(CFG, 'equipo', { soloCampo: lista, ts: Date.now() }), 'Usuarios actualizados'); }
   function subnav() {
     return '<div class="subnav s4" role="group" aria-label="Cuaderno de campo">' + [['resumen', 'Resumen'], ['asentamientos', 'Asentamientos'], ['diario', 'Diario'], ['movimientos', 'Movimientos']].map((v) => '<button data-act="nav" data-view="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + v[1] + '</button>').join('') + '</div>';
   }
-  const modoBar = () => '<div class="modo" role="group" aria-label="Parte de SORILLO"><button data-act="modo" data-v="campo"' + (S.modo !== 'env' ? ' aria-current="page"' : '') + '>🐝 Cuaderno de campo</button><button data-act="modo" data-v="env"' + (S.modo === 'env' ? ' aria-current="page"' : '') + '>🫙 Envasadora</button></div>';
+  const modoBar = () => S.soloCampo ? '' : '<div class="modo" role="group" aria-label="Parte de SORILLO"><button data-act="modo" data-v="campo"' + (S.modo !== 'env' ? ' aria-current="page"' : '') + '>🐝 Cuaderno de campo</button><button data-act="modo" data-v="env"' + (S.modo === 'env' ? ' aria-current="page"' : '') + '>🫙 Envasadora</button></div>';
   function pintarNav() {
     const el = document.getElementById('nav-in'); if (!el) return;
     if (S.modo === 'env') {
@@ -1725,12 +1744,14 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       el.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
       el.innerHTML = L.map((i) => '<button class="tab" data-act="env-tab" data-v="' + i[0] + '"' + (t === i[0] ? ' aria-current="page"' : '') + '>' + i[1] + '</button>').join('');
     } else {
-      el.style.gridTemplateColumns = 'repeat(4, minmax(0, 1fr))';
-      el.innerHTML = [['cuaderno', 'Cuaderno de campo'], ['asent', 'Asentamientos'], ['almacen', 'Almacén'], ['finanzas', 'Finanzas']].map((i) => '<button class="tab" data-act="sec" data-sec="' + i[0] + '">' + i[1] + '</button>').join('');
+      const T = [['cuaderno', 'Cuaderno de campo'], ['asent', 'Asentamientos'], ['almacen', 'Almacén'], ['finanzas', 'Finanzas']].filter((i) => !S.soloCampo || i[0] !== 'finanzas');
+      el.style.gridTemplateColumns = 'repeat(' + T.length + ', minmax(0, 1fr))';
+      el.innerHTML = T.map((i) => '<button class="tab" data-act="sec" data-sec="' + i[0] + '">' + i[1] + '</button>').join('');
     }
   }
   function render() {
     if (!S.loaded.col || !S.loaded.reg) { appEl.innerHTML = '<p class="muted">Abriendo el cuaderno…</p>'; return; }
+    if (S.soloCampo && (S.modo === 'env' || secOf(S.view) === 'finanzas')) { S.modo = 'campo'; S.view = 'resumen'; }
     const env = S.modo === 'env', sec = env ? 'env' : secOf(S.view);
     pintarNav();
     if (env) { appEl.innerHTML = modoBar() + viewEnvasadora(); const ab0 = document.querySelector('.add'); if (ab0) ab0.hidden = true; return; }
@@ -1767,6 +1788,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     else if (s.type === 'col') body = sheetCol(s);
     else if (s.type === 'total') body = sheetTotal();
     else if (s.type === 'pin') body = sheetPin(s);
+    else if (s.type === 'eqcampo') body = sheetEqCampo();
     else if (s.type === 'prd') body = sheetPrd(s);
     else if (s.type === 'inicio') body = sheetInicio();
     else if (s.type === 'pago') body = sheetPago(s);
@@ -2402,6 +2424,31 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     } catch (e) { ordenHecho = false; }
   }
   /* --- pedidos --- */
+  /* --- recordatorios de pedidos --- */
+  const pedAbierto = (p) => !p.estado || p.estado === 'nuevo' || p.estado === 'preparado';
+  const recTxt = (r) => { if (!r) return ''; const d = new Date(r); return isNaN(d) ? '' : d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); };
+  const recVence = (p) => p.recordatorio && pedAbierto(p) && new Date(p.recordatorio).getTime() <= Date.now();
+  function calUrl(p) {
+    const f = (d) => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00';
+    const a = new Date(p.recordatorio), b = new Date(a.getTime() + 30 * 60e3);
+    const det = [p.cliente, p.contacto, (p.lineas || []).map(lineaTxt).join(', '), p.direccion, p.notas].filter(Boolean).join('\n');
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent('SORILLO · Pedido nº ' + p.num + (p.cliente ? ' · ' + p.cliente : '')) +
+      '&dates=' + f(a) + '/' + f(b) + '&ctz=Europe/Madrid&details=' + encodeURIComponent(det);
+  }
+  /* Aviso en la app (y notificación del navegador si se ha permitido) cuando llega la hora. */
+  const KEY_RECAV = 'sorillo-rec-avisados';
+  function revisarRecordatorios() {
+    if (!S.loaded || !S.loaded.ped || S.soloCampo) return;
+    let av = {}; try { av = JSON.parse(localStorage.getItem(KEY_RECAV) || '{}'); } catch (e) { av = {}; }
+    S.ped.filter(recVence).forEach((p) => {
+      const k = p.id + '|' + p.recordatorio; if (av[k]) return; av[k] = 1;
+      const t = '⏰ Pedido nº ' + p.num + (p.cliente ? ' · ' + p.cliente : '');
+      toast(t);
+      try { if (window.Notification && Notification.permission === 'granted') new Notification('SORILLO', { body: t + '\n' + (p.lineas || []).map(lineaTxt).join(', '), icon: 'icon-192.png', tag: k }); } catch (e) { /* sin notificaciones */ }
+    });
+    try { localStorage.setItem(KEY_RECAV, JSON.stringify(av)); } catch (e) { /* sin almacenamiento */ }
+  }
+  setInterval(revisarRecordatorios, 60e3);
   function viewPedidos() {
     const fe = S.filtroPed || 'abiertos';
     const l = S.ped.filter((p) => fe === 'todos' || (fe === 'abiertos' ? (!p.estado || p.estado === 'nuevo' || p.estado === 'preparado') : p.estado === fe))
@@ -2411,9 +2458,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return '<div class="stack">' + cabEnv(S.ped.length + ' ' + plural(S.ped.length, 'pedido', 'pedidos')) +
       '<div class="actions"><button class="btn primary" data-act="new-ped">+ Nuevo pedido</button></div>' +
       '<dl class="facts-row"><div><dt>Abiertos</dt><dd>' + pedAbiertos() + '</dd></div><div><dt>Sin cobrar</dt><dd>' + sinCobrar.length + '</dd></div><div><dt>Pendiente de cobro</dt><dd style="font-size:1.2rem">' + eur(sinCobrar.reduce((a, p) => a + totalPed(p), 0)) + '</dd></div></dl>' +
+      (() => { const r = S.ped.filter((p) => p.recordatorio && pedAbierto(p)).sort((a, b) => String(a.recordatorio).localeCompare(String(b.recordatorio)));
+        return r.length ? '<section class="sect"><div class="catline"><h3>⏰ Recordatorios</h3><span class="muted">' + r.length + '</span></div><div class="list">' + r.map((p) => '<button class="row" data-act="edit-ped" data-id="' + esc(p.id) + '"><span class="row-main"><b>' + esc(recTxt(p.recordatorio)) + '</b><span class="muted">Nº ' + esc(p.num) + ' · ' + esc(p.cliente || 'Sin cliente') + '</span></span>' + (recVence(p) ? pill({ k: 'late', t: 'Ya toca' }) : pill({ k: 'ok', t: 'Pendiente' })) + '</button>').join('') + '</div></section>' : ''; })() +
       '<div class="chips" role="group" aria-label="Estado del pedido">' + chips + '</div>' +
       (l.length ? '<div class="list">' + l.map((p) => { const e = estPed(p.estado);
-        return '<button class="row" data-act="edit-ped" data-id="' + esc(p.id) + '"><span class="row-main"><b>Nº ' + esc(p.num) + ' · ' + esc(p.cliente || 'Sin cliente') + '</b><span class="muted">' + esc([fmtCorta(p.fecha), p.canal].filter(Boolean).join(' · ')) + '</span><span class="muted">' + esc((p.lineas || []).map(lineaTxt).join(' · ')) + '</span><span>' + pill({ k: e[2], t: e[1] }) + ' ' + (p.cobrado ? pill({ k: 'ok', t: 'Cobrado' }) : p.estado !== 'cancelado' ? pill({ k: 'warn', t: 'Sin cobrar' }) : '') + '</span></span><span class="money">' + eur(totalPed(p)) + '</span></button>'; }).join('') + '</div>'
+        return '<button class="row" data-act="edit-ped" data-id="' + esc(p.id) + '"><span class="row-main"><b>Nº ' + esc(p.num) + ' · ' + esc(p.cliente || 'Sin cliente') + '</b><span class="muted">' + esc([fmtCorta(p.fecha), p.canal, p.recordatorio && pedAbierto(p) ? '⏰ ' + recTxt(p.recordatorio) : ''].filter(Boolean).join(' · ')) + '</span><span class="muted">' + esc((p.lineas || []).map(lineaTxt).join(' · ')) + '</span><span>' + pill({ k: e[2], t: e[1] }) + ' ' + (p.cobrado ? pill({ k: 'ok', t: 'Cobrado' }) : p.estado !== 'cancelado' ? pill({ k: 'warn', t: 'Sin cobrar' }) : '') + '</span></span><span class="money">' + eur(totalPed(p)) + '</span></button>'; }).join('') + '</div>'
         : '<p class="hint">No hay pedidos ' + (fe === 'abiertos' ? 'abiertos' : 'con este filtro') + '.</p>') +
       '<p class="hint">Al pasar un pedido a «Enviado» o «Entregado» se descuentan sus tarros de las existencias. Al marcarlo como cobrado, se anota la venta en Finanzas → Ingresos.</p></div>';
   }
@@ -2440,6 +2489,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       '<button type="button" class="btn add-line" data-act="ped-add-linea">+ Añadir producto</button>' +
       '<p class="hint">Total del pedido: <b id="p-total">' + eurP(totalPed(v)) + '</b></p>' +
       '<div class="grid2">' + fld('p-fecha', 'Fecha del pedido', inp('p-fecha', 'date', v.fecha)) + fld('p-est', 'Estado', '<select id="p-est">' + EST_PED.map((e) => '<option value="' + e[0] + '"' + (e[0] === (v.estado || 'nuevo') ? ' selected' : '') + '>' + e[1] + '</option>').join('') + '</select>') + '</div>' +
+      fld('p-rec', '⏰ Recordatorio', '<input id="p-rec" type="datetime-local" value="' + esc(v.recordatorio || '') + '">', 'Opcional. Elige fecha y hora: la app te avisará y puedes pasarlo a Google Calendar.') +
+      (x && x.recordatorio ? '<p><a class="btn" target="_blank" rel="noopener" href="' + esc(calUrl(x)) + '">📅 Añadir a Google Calendar</a></p>' : '') +
       '<label class="chk"><input type="checkbox" id="p-cob"' + (v.cobrado ? ' checked' : '') + '>Cobrado (se anota en Finanzas → Ingresos)</label>' +
       fld('p-notas', 'Notas', '<textarea id="p-notas">' + esc(v.notas) + '</textarea>') +
       '<p class="err" id="p-err2" hidden></p><button class="btn primary" type="submit">' + (x ? 'Guardar cambios' : 'Crear pedido') + '</button></form>' +
@@ -2466,7 +2517,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       Object.keys(pide).forEach((k) => { const t = S.tar.find((y) => y.id === k), hay = (t ? Number(t.cantidad) || 0 : 0) + (res[k] || 0); if (hay < pide[k]) { const l = lineas.find((z) => tarId(z.fid, z.v) === k); falta.push(lineaTxt(Object.assign({}, l, { n: pide[k] })) + ' (hay ' + hay + ')'); } });
       if (falta.length) { form.dataset.forzar = '1'; return showErr('p-err2', 'No hay tarros suficientes: ' + falta.join('; ') + '. Pulsa otra vez «Guardar» para servirlo igualmente (las existencias quedarán a 0).'); }
     }
-    const doc = { num: Number(form.dataset.num) || 1, cliente: val('p-cli'), contacto: val('p-tel'), direccion: val('p-dir'), canal: val('p-canal'), lineas, fecha: val('p-fecha') || hoy(), estado, cobrado, notas: val('p-notas'), descontado: false, lineasDesc: [], ingIds: [], ts: old ? (old.ts || Date.now()) : Date.now() };
+    const doc = { num: Number(form.dataset.num) || 1, cliente: val('p-cli'), contacto: val('p-tel'), direccion: val('p-dir'), canal: val('p-canal'), lineas, fecha: val('p-fecha') || hoy(), estado, cobrado, notas: val('p-notas'), recordatorio: val('p-rec') || '', descontado: false, lineasDesc: [], ingIds: [], ts: old ? (old.ts || Date.now()) : Date.now() };
     const pid = id || S.store.newId();
     const ok = await run(async () => {
       if (old && old.descontado) for (const l of old.lineasDesc || []) await ajustarTarros(l.fid, l.v, l.n);
@@ -2479,6 +2530,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       } else if (old && old.ingIds && cobrado) for (const i of old.ingIds) await S.store.del(ING, i);
       await S.store.set(PED, pid, doc);
     }, id ? 'Pedido guardado' : 'Pedido creado');
+    if (ok && doc.recordatorio) { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { /* sin notificaciones */ } }
     if (ok) closeSheet();
   }
   async function borrarPed(id) {
@@ -3131,6 +3183,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
         () => toast('No se pudo obtener la ubicación. Pega las coordenadas desde el mapa.'), { enableHighAccuracy: true, timeout: 15000 });
     }
     else if (a === 'exportar') exportarDatos();
+    else if (a === 'eq-campo') openSheet({ type: 'eqcampo' });
+    else if (a === 'eq-quitar') { const l = (S.eqCampo || []).filter((x) => x !== d.v); guardarEqCampo(l).then(() => { S.eqCampo = l; drawSheet(false); }); }
     else if (a === 'copia') copiaSeguridad();
     else if (a === 'ruta') openSheet({ type: 'ruta' });
     else if (a === 'env-tab') { ponerModo('env'); S.envTab = d.v; render(); window.scrollTo(0, 0); }
@@ -3235,7 +3289,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target, k = f.dataset.form;
-    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'sen-nuevos') guardarSenNuevos(); else if (k === 'sen') guardarSen(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'valcol') guardarValCol();
+    if (k === 'reg') guardarReg(f); else if (k === 'col') guardarCol(f); else if (k === 'pin') guardarPin(f); else if (k === 'prd') guardarPrd(f); else if (k === 'total') guardarTotal(); else if (k === 'inicio') guardarInicio(); else if (k === 'alm') guardarAlm(f); else if (k === 'gas') guardarGas(f); else if (k === 'prod') guardarProd(f); else if (k === 'ing') guardarIng(f); else if (k === 'sub') guardarSub(f); else if (k === 'temp') guardarTemp(f); else if (k === 'valmiel') guardarValMiel(f); else if (k === 'pat') guardarPat(f); else if (k === 'tar') guardarTar(f); else if (k === 'lote') guardarLote(); else if (k === 'fmt') guardarFmt(f); else if (k === 'ped') guardarPed(f); else if (k === 'sen-nuevos') guardarSenNuevos(); else if (k === 'sen') guardarSen(f); else if (k === 'ia') iaEnviar(val('ia-in')); else if (k === 'valcol') guardarValCol(); else if (k === 'eqcampo') {
+      const m = String(val('eq-mail') || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) showErr('eq-err', 'Escribe un correo válido.');
+      else { const l = Array.from(new Set((S.eqCampo || []).concat([m]))); guardarEqCampo(l).then(() => { S.eqCampo = l; drawSheet(false); }); }
+    }
   });
   document.addEventListener('change', (e) => {
     const t = e.target;
@@ -3389,6 +3447,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       if (!u) { pintarLogin(); return; }
       try { await S.fbDb.collection(CFG).doc('main').get(); }
       catch (e) { if (e && e.code === 'permission-denied') { pintarNoAcceso(u); return; } }
+      try { const eq = await S.fbDb.collection(CFG).doc('equipo').get(); const l = eq.exists ? (eq.data().soloCampo || []) : []; S.soloCampo = l.map((x) => String(x).toLowerCase()).indexOf(String(u.email || '').toLowerCase()) >= 0; } catch (e) { /* sin lista */ }
+      if (S.soloCampo) ponerModo('campo');
       loginEl.hidden = true; loginEl.innerHTML = '';
       if (!S.booted) { S.booted = true; boot(); } else if (S.store) S.store.attach(S.fbDb);
     });
@@ -3402,8 +3462,10 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
 
   async function boot() {
     S.store = makeStore();
+    if (S.soloCampo) S.store.excluir(SOLO_COMPLETO);
     S.store.onStatus = updateNet;
-    S.store.watch(CFG, (d) => { const m = d.find((x) => x.id === 'main'); S.cfg = Object.assign({ total: 567 }, m || {}); if (S.loaded.col && S.loaded.reg) refresh(); });
+    S.store.watch(CFG, (d) => { const eq = d.find((x) => x.id === 'equipo'); S.eqCampo = eq && eq.soloCampo || [];
+      const m = d.find((x) => x.id === 'main'); S.cfg = Object.assign({ total: 567 }, m || {}); if (S.loaded.col && S.loaded.reg) refresh(); });
     S.store.watch(COL, (d) => { S.col = d; S.loaded.col = true; refresh(); if (LOCAL) setTimeout(() => wxLiveTodos(false), 0); });
     S.store.watch(REG, (d) => { S.reg = d; S.loaded.reg = true; refresh(); });
     S.store.watch(ALM, (d) => { S.alm = d; S.loaded.alm = true; refresh(); });
@@ -3416,7 +3478,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     S.store.watch(FMT, (d) => { S.fmt = d; S.loaded.fmt = true; refresh(); });
     S.store.watch(TAR, (d) => { S.tar = d; S.loaded.tar = true; refresh(); });
     S.store.watch(ENV, (d) => { S.env = d; S.loaded.env = true; refresh(); });
-    S.store.watch(PED, (d) => { S.ped = d; S.loaded.ped = true; refresh(); });
+    S.store.watch(PED, (d) => { S.ped = d; S.loaded.ped = true; refresh(); setTimeout(revisarRecordatorios, 1500); });
     S.store.watch(SEN, (d) => { S.sen = d; S.loaded.sen = true; refresh(); });
     S.store.watch(LEC, (d) => { S.lec = d; S.loaded.lec = true; refresh(); });
     render(); updateNet();
