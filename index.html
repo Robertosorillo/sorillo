@@ -1,5 +1,5 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>SORILLO</title>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><div id="demo-aviso" style="position:sticky;top:0;z-index:50;background:#1f1b16;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:8px 12px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap"><span>🎓 VERSIÓN DE DEMOSTRACIÓN · todos los datos son ficticios</span><button onclick="demoReiniciar()" style="font:inherit;background:#f2b51d;color:#1f1b16;border:0;border-radius:999px;padding:4px 12px;cursor:pointer">Reiniciar demo</button></div>
+<title>SORILLO · Demo</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SORILLO">
@@ -312,11 +312,8 @@ details.est + details.est { margin-top: 8px; }
 <div id="sheet" class="sheet" hidden></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-window.SORILLO_FB = {
+window.SORILLO_FB_IA = {
   apiKey: "AIzaSyB9pVN-yGUFH3-Xr3Nlx1qFx02euZtCkIE",
   authDomain: "sorillo.firebaseapp.com",
   projectId: "sorillo",
@@ -369,11 +366,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const APROV = { miel: 'Miel', polen: 'Polen', ambos: 'Miel y polen' };
   const FILTROS_AS = [['todos', 'Todos'], ['miel', 'Miel'], ['polen', 'Polen']];
   const LOGO = 'data:image/png;base64,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'; /* logotipo de Sorillo (abeja y nombre) */
-  const KEY_DATOS = 'sorillo-datos-v1', KEY_COLA = 'sorillo-cola-v1', KEY_INSTALAR = 'sorillo-instalar-oculto';
+  const KEY_DATOS = 'sorillo-demo-datos-v1', KEY_COLA = 'sorillo-demo-cola-v1', KEY_INSTALAR = 'sorillo-demo-instalar-oculto';
 
   const S = { cfg: { total: 567 }, col: [], reg: [], alm: [], gas: [], ing: [], sub: [], tmp: [], prd: [], pat: [], fmt: [], tar: [], env: [], ped: [], sen: [], lec: [], almTab: 'material', filtroPrdE: 'almacen', filtroPrdV: 'todas', prdTab: 'miel', finTab: 'gastos', view: 'resumen', cuad: 'resumen', filtro: 'todos', filtroAs: 'todos', filtroAlm: 'todos', periodo: 'anio', sheet: null, store: null, loaded: { col: false, reg: false, alm: false, gas: false, ing: false, sub: false, tmp: false, prd: false, pat: false, fmt: false, tar: false, env: false, ped: false, sen: false, lec: false } };
   const $ = (s) => document.querySelector(s);
-  const KEY_MODO = 'sorillo-modo';
+  const KEY_MODO = 'sorillo-demo-modo';
   try { S.modo = localStorage.getItem(KEY_MODO) === 'env' ? 'env' : 'campo'; } catch (e) { S.modo = 'campo'; }
   /* Colecciones que no ve un usuario «solo de campo» (finanzas y envasadora). */
   const SOLO_COMPLETO = ['gastos', 'ingresos', 'subvenciones', 'patrimonio', 'formatos', 'tarros', 'envasados', 'pedidos'];
@@ -442,7 +439,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return { inicio: inv.inicio, items, entraron, bajas, viven, pct: entraron > 0 ? bajas / entraron * 100 : 0, motivos };
   }
   const meter = (w) => '<span class="meter" aria-hidden="true"><i style="width:' + w + '%"></i></span>';
-  const KEY_ABIERTO = 'sorillo-bal-abierto';
+  const KEY_ABIERTO = 'sorillo-demo-bal-abierto';
   try { S.abierto = JSON.parse(localStorage.getItem(KEY_ABIERTO) || '{}') || {}; } catch (e) { S.abierto = {}; }
   const plegable = (k, titulo, resumen, html) => '<div class="fold"><button type="button" class="fold-h" data-act="fold" data-k="' + k + '" aria-expanded="' + !!S.abierto[k] + '"><span><b>' + titulo + '</b><span class="muted">' + resumen + '</span></span><span class="chev" aria-hidden="true">' + (S.abierto[k] ? '▴' : '▾') + '</span></button>' + (S.abierto[k] ? html : '') + '</div>';
   function balanceSection() {
@@ -681,7 +678,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     }
     return null;
   };
-  const KEY_WX_VISTO = 'sorillo-tiempo-v1';
+  const KEY_WX_VISTO = 'sorillo-demo-tiempo-v1';
   const COND = { clear: ['☀️', 'Despejado'], sunny: ['☀️', 'Despejado'], partly_cloudy: ['🌤️', 'Poco nuboso'], mostly_cloudy: ['⛅', 'Muy nuboso'], cloudy: ['☁️', 'Nublado'], overcast: ['☁️', 'Nublado'], fog: ['🌫️', 'Niebla'], drizzle: ['🌦️', 'Llovizna'], rain: ['🌧️', 'Lluvia'], heavy_rain: ['🌧️', 'Lluvia fuerte'], showers: ['🌧️', 'Chubascos'], thunderstorm: ['⛈️', 'Tormenta'], snow: ['🌨️', 'Nieve'], sleet: ['🌨️', 'Aguanieve'], hail: ['🌨️', 'Granizo'] };
   const wxCond = (w) => COND[String(w.cond || '').toLowerCase()] || ['🌡️', w.txt || 'Variable'];
   const llueveAhora = (w) => ['drizzle', 'rain', 'heavy_rain', 'showers', 'thunderstorm', 'sleet', 'hail', 'snow'].indexOf(String(w.cond || '').toLowerCase()) >= 0;
@@ -1314,7 +1311,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
   const f8 = (iso) => iso && iso.length >= 10 ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '';
   const movs = () => S.reg.filter((r) => r.tipo === 'traslado').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.ts || 0) - (a.ts || 0));
   /* archivos adjuntos: en Claude se guardan como archivos de la página; fuera de Claude, en este dispositivo */
-  const idb = () => new Promise((ok, ko) => { const q = indexedDB.open('sorillo-archivos', 1); q.onupgradeneeded = () => q.result.createObjectStore('f'); q.onsuccess = () => ok(q.result); q.onerror = () => ko(q.error); });
+  const idb = () => new Promise((ok, ko) => { const q = indexedDB.open('sorillo-demo-archivos', 1); q.onupgradeneeded = () => q.result.createObjectStore('f'); q.onsuccess = () => ok(q.result); q.onerror = () => ko(q.error); });
   const idbPut = async (k, v) => { const d = await idb(); return new Promise((ok, ko) => { const t = d.transaction('f', 'readwrite'); t.objectStore('f').put(v, k); t.oncomplete = ok; t.onerror = () => ko(t.error); }); };
   const idbGet = async (k) => { const d = await idb(); return new Promise((ok, ko) => { const r = d.transaction('f').objectStore('f').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); }); };
   const idbDel = async (k) => { try { const d = await idb(); d.transaction('f', 'readwrite').objectStore('f').delete(k); } catch (e) { /* nada */ } };
@@ -1564,7 +1561,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return '<button class="row" data-act="sec" data-sec="asent"><span class="row-main"><b>Renta asentamientos</b><span class="muted">' + esc(rs.length + ' ' + plural(rs.length, 'asentamiento', 'asentamientos') + ' · ' + det) + '</span><span class="money-sub">≈ ' + eur(eurA / 12) + ' al mes · ' + eur(eurA) + ' al año' + (kgA ? ' + ' + fmtN(kgA) + ' kg de miel al año' : '') + '</span></span><span class="money">' + eur(eurA) + (kgA ? '<small class="muted"> + ' + fmtN(kgA) + ' kg</small>' : '') + '</span></button>';
   }
   const finTabs = () => '<div class="subnav" style="grid-template-columns:repeat(3,minmax(0,1fr))" role="group" aria-label="Finanzas">' + [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['existencias', 'Existencias miel'], ['subvenciones', 'Subvenciones'], ['patrimonio', 'Patrimonio']].map((t) => '<button data-act="fin-tab" data-v="' + t[0] + '"' + (S.finTab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>').join('') + '</div>';
-  const KEY_OCULTO = 'sorillo-fin-oculto';
+  const KEY_OCULTO = 'sorillo-demo-fin-oculto';
   try { S.oculto = localStorage.getItem(KEY_OCULTO) === '1'; } catch (e) { S.oculto = false; }
   const ocultaBtn = () => '<div class="actions" style="justify-content:flex-end;margin-bottom:8px"><button class="btn" data-act="exportar">⬇ Exportar datos</button><button class="btn" data-act="oculto" aria-pressed="' + !!S.oculto + '">' + (S.oculto ? '👁 Mostrar cifras' : '🙈 Ocultar cifras') + '</button></div>';
   function ponerOculto(v) { S.oculto = v; try { localStorage.setItem(KEY_OCULTO, v ? '1' : '0'); } catch (e) { /* sin almacenamiento */ } render(); }
@@ -2436,7 +2433,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
       '&dates=' + f(a) + '/' + f(b) + '&ctz=Europe/Madrid&details=' + encodeURIComponent(det);
   }
   /* Aviso en la app (y notificación del navegador si se ha permitido) cuando llega la hora. */
-  const KEY_RECAV = 'sorillo-rec-avisados';
+  const KEY_RECAV = 'sorillo-demo-rec-avisados';
   function revisarRecordatorios() {
     if (!S.loaded || !S.loaded.ped || S.soloCampo) return;
     let av = {}; try { av = JSON.parse(localStorage.getItem(KEY_RECAV) || '{}'); } catch (e) { av = {}; }
@@ -3460,7 +3457,120 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEv
     return n;
   }
 
+  /* ===================== VERSIÓN DE DEMOSTRACIÓN =====================
+     Datos ficticios, generados en el propio móvil a partir de la fecha de hoy.
+     Nada de esto es real: nombres, lugares, clientes, importes y lecturas son inventados. */
+  function demoDatos() {
+    let semilla = 7;
+    const rnd = () => { semilla = (semilla * 16807) % 2147483647; return (semilla - 1) / 2147483646; };
+    const ent = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+    const elige = (l) => l[Math.floor(rnd() * l.length)];
+    const H = new Date(); H.setHours(12, 0, 0, 0);
+    const dia = (n) => { const d = new Date(H.getTime() - n * 864e5); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    const D = { asentamientos: {}, registros: {}, config: {}, almacen: {}, gastos: {}, ingresos: {}, subvenciones: {}, tiempo: {}, productos: {}, patrimonio: {}, formatos: {}, tarros: {}, envasados: {}, pedidos: {}, sensores: {}, lecturas: {} };
+    let k = 0; const id = (p) => p + (++k).toString(36);
+    const ts = Date.now() - 864e5 * 30;
+    /* --- asentamientos (nombres y coordenadas inventados) --- */
+    const AS = [
+      ['El Encinar', 40.512, -5.912, 'salamanca', 'Encina', 'miel', 110], ['Los Robles', 40.468, -5.861, 'salamanca', 'Roble / Bosque', 'miel', 96],
+      ['La Retamosa', 40.597, -6.105, 'salamanca', 'Retama', 'ambos', 84], ['Valle del Brezo', 40.553, -5.744, 'salamanca', 'Brezo / Mil flores', 'miel', 72],
+      ['Cerro Colmenar', 40.631, -5.987, 'salamanca', 'Encina', 'miel', 64], ['Las Jaras', 39.948, -6.452, 'extremadura', 'Jara / Romero', 'polen', 120],
+      ['Fuente Clara', 39.903, -6.318, 'extremadura', 'Mil flores', 'miel', 90], ['El Castañar', 40.012, -6.587, 'extremadura', 'Castaño', 'miel', 76],
+      ['La Dehesa Alta', 39.861, -6.241, 'extremadura', 'Encina', 'ambos', 104], ['Peñas Blancas', 39.976, -6.689, 'extremadura', 'Eucalipto / Tomillo', 'polen', 58]];
+    const cols = AS.map((a, i) => { const cid = id('c');
+      D.asentamientos[cid] = { nombre: a[0], numero: i + 1, coords: '(' + (a[1] + 0.000137 * i).toFixed(6) + ', ' + (a[2] - 0.000211 * i).toFixed(6) + ')', zona: a[3], floracion: a[4], aprov: a[5], colmenas: a[6], colmenasInicio: a[6] + ent(0, 4),
+        lugar: '', altitud: ent(450, 950), llegada: dia(ent(20, 70)), avisoDias: 15, propietario: i % 3 === 0 ? 'Propietario de ejemplo' : '', renta: i % 2 ? ent(20, 60) : null, rentaTipo: i % 4 === 1 ? 'miel' : 'euros', rentaFrec: 'anual', vence: i % 2 ? dia(-ent(5, 200)) : '', notas: '', creado: ts + i, ts: ts + i };
+      return Object.assign({ id: cid }, D.asentamientos[cid]); });
+    const total = cols.reduce((s, c) => s + c.colmenas, 0);
+    /* --- cuaderno de campo --- */
+    const reg = (c, tipo, n, extra) => { const rid = id('r'); D.registros[rid] = Object.assign({ tipo, asentamientoId: c.id, asentamientoNombre: c.nombre, fecha: dia(n), notas: '', ts: ts + k }, extra); };
+    cols.forEach((c, i) => {
+      for (let n = ent(2, 16); n < 95; n += ent(12, 24)) reg(c, 'inspeccion', n, { muestra: ent(8, 20), huerfanas: rnd() < 0.2 ? ent(1, 2) : 0, cria: elige(['Buena', 'Buena', 'Regular']), reservas: elige(['Abundantes', 'Justas', 'Abundantes']), varroa: Math.round(rnd() * 25) / 10 });
+      if (i % 2 === 0) reg(c, 'tratamiento', ent(25, 50), { producto: elige(['Ácido oxálico', 'Timol']), tratadas: c.colmenas, retirada: dia(ent(-20, 5)) });
+      if (rnd() < 0.6) reg(c, 'baja', ent(5, 50), { n: ent(1, 4), causa: elige(['Orfandad', 'Varroa', 'Hambre', 'Desconocida']) });
+      if (i < 4) reg(c, 'cosecha', ent(60, 90), { kg: ent(180, 420), prod: 'miel', producto: c.floracion.split(' /')[0], lote: '' });
+      if (c.aprov === 'polen') reg(c, 'cosecha', ent(40, 80), { kg: ent(40, 90), prod: 'polen', producto: 'Polen seco', lote: '' });
+      if (i === 2) reg(c, 'enjambre', 70, { n: 12, metodo: 'División' });
+    });
+    reg(cols[6], 'traslado', 35, { origen: 'Fuente Clara', destino: 'El Castañar', n: 20 });
+    D.config.main = { total, invernada: { inicio: dia(60) }, almacen: { coords: '(40.402317, -5.982144)' }, envOrden5: true,
+      /* código de Patrimonio de la demo: 1234 */
+      pin: '51167bc6cfcbdcf41e4ef85dec24f817cc1f326ab2e3fbf18d5118eeb89a21eb' };
+    /* --- almacén de campo --- */
+    [['Jarabe', 'alimento', 'kg', 640], ['Apipasta', 'alimento', 'kg', 180], ['Azúcar', 'alimento', 'sacos', 12, 'saco 20 kg'], ['Colmenas vacías', 'colmenas', 'ud', 85], ['Núcleos', 'cajas', 'ud', 40],
+      ['Láminas', 'laminas', 'cajas', 6, 'cajas'], ['Cazapolen', 'cazapolen', 'ud', 150], ['Alimentadores', 'alimentadores', 'ud', 210], ['Aislantes', 'aislantes', 'ud', 60], ['Tiras de tratamiento', 'tratamientos', 'ud', 4]]
+      .forEach((b) => { D.almacen[id('a')] = { nombre: b[0], categoria: b[1], unidad: b[2], cantidad: b[3], detalle: b[4] || '', minimo: b[0] === 'Tiras de tratamiento' ? 10 : null, sec: 'material', ts }; });
+    /* --- material de envasado y formatos --- */
+    const mat = {};
+    BASE_ENV.forEach((b) => { const aid = id('e'); mat[b[0]] = aid; const g = tamG(b[0]);
+      D.almacen[aid] = { nombre: b[0], categoria: b[1], unidad: b[2], cantidad: b[1] === 'embalaje' ? 35 : g >= 2000 ? ent(10, 40) : ent(80, 600), detalle: '', sec: 'envasadora', ts }; });
+    const fmts = {};
+    FMT_BASE.forEach((b) => { const fid = id('f'); fmts[b[0]] = fid;
+      D.formatos[fid] = { nombre: b[0], prod: b[1], gramos: b[2], pvp: { 45: 2.5, 250: 6, 500: 9.5, 1000: 16, 2000: 30, 5000: 70, 20: 2, 125: 5, 220: 8 }[b[2]] || null, receta: b[3].map((n) => mat[n]).filter(Boolean).map((x) => ({ id: x, q: 1 })), ts }; });
+    /* --- bidones --- */
+    const MIELES = ['Encina', 'Bosque', 'Retama', 'Flores'], bid = [];
+    for (let n = 1; n <= 14; n++) { const pid = id('p'), polen = n > 12, v = polen ? 'Multifloral' : MIELES[(n - 1) % 4];
+      const est = n <= 5 ? 'envasado' : n === 6 || n === 13 ? 'enuso' : 'almacen';
+      D.productos[pid] = { tipo: 'bidon', num: n, prod: polen ? 'polen' : 'miel', lote: '', variedad: v, origen: cols[(n - 1) % cols.length].nombre, kg: est === 'envasado' ? 0 : est === 'enuso' ? ent(60, 140) : ent(270, 300), fecha: dia(ent(60, 120)), estado: est, ubicacion: 'Nave', notas: '', ts };
+      bid.push({ id: pid, n, v, polen }); }
+    /* --- lotes de envasado --- */
+    const lote = (b, fnom, v, nT, dd) => { const f = D.formatos[fmts[fnom]]; const eid = id('l');
+      D.envasados[eid] = { formatoId: fmts[fnom], formatoNom: fnom, variedad: v, n: nT, kg: Math.round(nT * f.gramos / 10) / 100, fecha: dia(dd), lote: (b.polen ? 'P' : '') + String(b.n).padStart(4, '0'), bidonId: b.id, bidonNum: String(b.n), bidonLote: (b.polen ? 'P' : '') + String(b.n).padStart(4, '0'), prod: f.prod, mat: [], notas: '', ts }; };
+    [[0, 'Miel 500 g', 'Encina', 120, 55], [0, 'Miel 1 kg', 'Encina', 90, 54], [1, 'Miel 250 g', 'Bosque', 200, 48], [1, 'Miel 250 g', 'Con trufa', 60, 47], [2, 'Miel 500 g', 'Retama', 150, 40],
+      [2, 'Miel 45 g', 'Retama', 300, 39], [3, 'Miel 500 g', 'Flores', 140, 30], [3, 'Miel 250 g', 'Con nueces', 80, 29], [4, 'Miel 2 kg', 'Encina', 40, 22], [4, 'Miel 5 kg', 'Encina', 20, 21],
+      [5, 'Miel 250 g', 'Bosque', 120, 12], [5, 'Miel 250 g', 'Con pistachos', 70, 11], [12, 'Polen seco 220 g', 'Multifloral', 90, 9], [12, 'Polen seco 125 g', 'Multifloral', 120, 8]]
+      .forEach((x) => lote(bid[x[0]], x[1], x[2], x[3], x[4]));
+    /* --- existencias de tarros --- */
+    Object.values(D.envasados).forEach((e) => { const tid = tarId(e.formatoId, e.variedad); const t = D.tarros[tid] || (D.tarros[tid] = { formatoId: e.formatoId, variedad: vCat(e.variedad), cantidad: 0, ts }); t.cantidad += Math.round(e.n * (0.35 + rnd() * 0.4)); });
+    /* --- pedidos (clientes inventados) --- */
+    const CLI = ['Tienda La Abeja Reina', 'Ultramarinos El Ejemplo', 'Herboristería Sol y Miel', 'Restaurante El Prado', 'Cliente web', 'Frutería Las Eras', 'Hotel Rural Los Pinos', 'Mercado de productores'];
+    const CAN = { 'Cliente web': 'Web', 'Mercado de productores': 'Feria o mercado' };
+    const tars = Object.keys(D.tarros).map((x) => D.tarros[x]);
+    for (let i = 0; i < 16; i++) { const cli = elige(CLI), dd = ent(1, 75), lin = [];
+      for (let j = 0, nl = ent(1, 3); j < nl; j++) { const t = elige(tars), f = D.formatos[t.formatoId]; lin.push({ fid: t.formatoId, v: t.variedad, n: ent(2, 24), precio: f.pvp }); }
+      const est = dd > 20 ? elige(['entregado', 'entregado', 'enviado']) : elige(['nuevo', 'preparado', 'nuevo', 'entregado']);
+      const pid = id('o'); D.pedidos[pid] = { num: i + 1, cliente: cli, contacto: '600 000 0' + pad(i), direccion: '', canal: CAN[cli] || elige(['Tienda', 'Cliente directo', 'Teléfono / WhatsApp']), lineas: lin, fecha: dia(dd), estado: est,
+        cobrado: est === 'entregado' && rnd() < 0.8, notas: '', recordatorio: est === 'nuevo' || est === 'preparado' ? (() => { const r = new Date(H.getTime() + ent(1, 6) * 864e5); return r.getFullYear() + '-' + pad(r.getMonth() + 1) + '-' + pad(r.getDate()) + 'T' + pad(ent(9, 18)) + ':00'; })() : '',
+        descontado: est === 'enviado' || est === 'entregado', lineasDesc: [], ingIds: [], ts: ts + i }; }
+    /* --- finanzas (importes inventados) --- */
+    [['Azúcar y jarabe', 'Alimentación', 1250, 70], ['Tarros y tapas', 'Envases', 640, 45], ['Gasoil furgoneta', 'Combustible', 180, 10], ['Tratamiento varroa', 'Sanidad', 420, 50],
+      ['Seguro de la explotación', 'Seguros', 380, 85], ['Etiquetas y precintos', 'Envases', 290, 33], ['Gasoil furgoneta', 'Combustible', 165, 40], ['Láminas de cera', 'Material', 310, 65]]
+      .forEach((g) => { D.gastos[id('g')] = { tipo: 'variable', concepto: g[0], categoria: g[1], importe: g[2], fecha: dia(g[3]), litros: null, frecuencia: null, notas: '', ts }; });
+    D.gastos[id('g')] = { tipo: 'fijo', concepto: 'Alquiler de la nave', categoria: 'Instalaciones', importe: 250, fecha: dia(80), litros: null, frecuencia: 'mensual', notas: '', ts };
+    [['miel', 'Encina', 'Venta a granel (ejemplo)', 300, 6.5, 60], ['polen', 'Multifloral', 'Herboristería Sol y Miel', 20, 18, 25], ['miel', 'Flores', 'Mercado de productores', 80, 9, 15]]
+      .forEach((x) => { D.ingresos[id('i')] = { producto: x[0], variedad: x[1], cliente: x[2], cantidad: x[3], precio: x[4], fecha: dia(x[5]), notas: '', ts }; });
+    D.subvenciones[id('s')] = { nombre: 'Ayuda a la apicultura (ejemplo)', tipo: 'agro', organismo: 'Organismo de ejemplo', estado: 'concedida', importe: 2400, concedido: 2400, fecha: dia(90), fechaCobro: dia(-30), notas: '', ts };
+    D.subvenciones[id('s')] = { nombre: 'Ayuda de ejemplo pendiente', tipo: 'otras', organismo: 'Organismo de ejemplo', estado: 'pendiente', importe: 1500, concedido: null, fecha: dia(20), fechaCobro: '', notas: '', ts };
+    [['Furgoneta de ejemplo', 'Vehículos', 1, 18000, 2021, 10], ['Extractor de 20 cuadros', 'Maquinaria', 1, 3200, 2022, 15], ['Envasadora semiautomática', 'Maquinaria', 1, 4500, 2023, 12]]
+      .forEach((x) => { D.patrimonio[id('t')] = { nombre: x[0], categoria: x[1], cant: x[2], valor: x[3], precio: x[3], fecha: x[4] + '-03-01', vida: x[5], notas: '', ts }; });
+    /* --- sensores (lecturas simuladas de los últimos 35 días) --- */
+    const c0 = cols[0];
+    [['demo_peso1', 'Báscula colmena 1', 'peso', 48], ['demo_peso2', 'Báscula colmena 2', 'peso', 52], ['demo_temp', 'Temperatura colmena', 'temp', 34], ['demo_hum', 'Humedad colmena', 'hum', 58]]
+      .forEach((s, si) => { D.sensores[s[0]] = { col: s[0], nombre: s[1], tipo: s[2], asentamientoId: c0.id, ts };
+        let v = s[3];
+        for (let h = 35 * 24; h >= 0; h--) { const t = new Date(Date.now() - h * 36e5), hr = t.getHours();
+          if (s[2] === 'peso') v += (hr === 14 ? -0.25 - rnd() * 0.15 : 0) + (hr === 2 ? 0.05 : 0) + (rnd() - 0.5) * 0.04;
+          const val = s[2] === 'peso' ? Math.round(v * 100) / 100 : s[2] === 'temp' ? Math.round((34.5 + Math.sin(hr / 24 * 6.28) * 0.6 + (rnd() - 0.5) * 0.4) * 10) / 10 : Math.round(55 + Math.sin(hr / 24 * 6.28) * 6 + (rnd() - 0.5) * 3);
+          if (si === 1 && h < 30) continue; /* una báscula «se queda sin datos» para ver un aviso */
+          const mes = t.getFullYear() + '-' + pad(t.getMonth() + 1), kk = mes + '-' + pad(t.getDate()) + 'T' + pad(hr), lid = s[0] + '_' + mes;
+          (D.lecturas[lid] = D.lecturas[lid] || { sensorId: s[0], mes, h: {}, ts }).h[kk] = val; } });
+    return D;
+  }
+  const KEY_DEMO_HECHO = 'sorillo-demo-iniciada';
+  function demoSembrar(forzar) {
+    try {
+      if (!forzar && localStorage.getItem(KEY_DATOS)) return;
+      localStorage.setItem(KEY_DATOS, JSON.stringify(demoDatos()));
+      localStorage.setItem(KEY_COLA, '[]');
+      localStorage.setItem(KEY_DEMO_HECHO, '1');
+    } catch (e) { /* sin almacenamiento */ }
+  }
+  window.demoReiniciar = function () {
+    if (!confirm('¿Volver a los datos de demostración del principio? Se borrará lo que hayas añadido en esta demo.')) return;
+    demoSembrar(true); location.reload();
+  };
   async function boot() {
+    demoSembrar(false);
     S.store = makeStore();
     if (S.soloCampo) S.store.excluir(SOLO_COMPLETO);
     S.store.onStatus = updateNet;
@@ -3511,7 +3621,7 @@ const MODELOS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-late
 let listo = null;
 async function arrancar() {
   const [a, c, ia] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-app-check.js'), import(B + 'firebase-ai.js')]);
-  const app = a.initializeApp(window.SORILLO_FB, 'ia');
+  const app = a.initializeApp(window.SORILLO_FB || window.SORILLO_FB_IA, 'ia');
   c.initializeAppCheck(app, { provider: new c.ReCaptchaEnterpriseProvider(KEY), isTokenAutoRefreshEnabled: true });
   return { ai: ia.getAI(app, { backend: new ia.GoogleAIBackend() }), getGenerativeModel: ia.getGenerativeModel };
 }
